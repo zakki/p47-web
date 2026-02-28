@@ -90,6 +90,47 @@ export class P47Screen extends Screen3D {
   }
 
   public static drawLineRetro(x1: number, y1: number, x2: number, y2: number): void {
+    P47Screen.setRetroDrawColor();
+    if (P47Screen.retro < 0.2) {
+      Screen3D.glBegin(Screen3D.GL_LINES);
+      Screen3D.glVertex3f(x1, y1, P47Screen.retroZ);
+      Screen3D.glVertex3f(x2, y2, P47Screen.retroZ);
+      Screen3D.glEnd();
+      return;
+    }
+    Screen3D.glBegin(Screen3D.GL_QUADS);
+    P47Screen.emitRetroSegmentQuads(x1, y1, x2, y2);
+    Screen3D.glEnd();
+  }
+
+  public static drawLineLoopRetro(points: ReadonlyArray<RetroPoint>, offsetX = 0, offsetY = 0): void {
+    if (points.length < 2) {
+      return;
+    }
+    P47Screen.setRetroDrawColor();
+    if (P47Screen.retro < 0.2) {
+      Screen3D.glBegin(Screen3D.GL_LINE_LOOP);
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        Screen3D.glVertex3f(offsetX + p.x, offsetY + p.y, P47Screen.retroZ);
+      }
+      Screen3D.glEnd();
+      return;
+    }
+    Screen3D.glBegin(Screen3D.GL_QUADS);
+    let ni = 1;
+    for (let i = 0; i < points.length; i++, ni++) {
+      if (ni >= points.length) {
+        ni = 0;
+      }
+      const p1 = points[i];
+      const p2 = points[ni];
+      P47Screen.emitRetroSegmentQuads(offsetX + p1.x, offsetY + p1.y, offsetX + p2.x, offsetY + p2.y);
+    }
+    Screen3D.glEnd();
+  }
+
+  private static setRetroDrawColor(): void {
     const cf = (1 - P47Screen.retro) * 0.5;
     let r = P47Screen.retroR + (1 - P47Screen.retroR) * cf;
     let g = P47Screen.retroG + (1 - P47Screen.retroG) * cf;
@@ -102,64 +143,63 @@ export class P47Screen extends Screen3D {
       a = Math.min(a * 1.5, 1);
     }
     Screen3D.setColor(r, g, b, a);
-    if (P47Screen.retro < 0.2) {
-      Screen3D.glBegin(Screen3D.GL_LINES);
-      Screen3D.glVertex3f(x1, y1, P47Screen.retroZ);
-      Screen3D.glVertex3f(x2, y2, P47Screen.retroZ);
-      Screen3D.glEnd();
+  }
+
+  private static emitRetroSegmentQuads(x1: number, y1: number, x2: number, y2: number): void {
+    const ds = P47Screen.retroSize * P47Screen.retro;
+    if (ds <= 0) {
       return;
     }
-    const ds = P47Screen.retroSize * P47Screen.retro;
     const ds2 = ds / 2;
     const lx = Math.abs(x2 - x1);
     const ly = Math.abs(y2 - y1);
-    Screen3D.glBegin(Screen3D.GL_QUADS);
     if (lx < ly) {
       const n = Math.floor(ly / ds);
-      if (n > 0) {
-        const xo = (x2 - x1) / n;
-        let xos = 0;
-        const yo = y2 < y1 ? -ds : ds;
-        let x = x1;
-        let y = y1;
-        for (let i = 0; i <= n; i++, xos += xo, y += yo) {
-          if (xos >= ds) {
-            x += ds;
-            xos -= ds;
-          } else if (xos <= -ds) {
-            x -= ds;
-            xos += ds;
-          }
-          Screen3D.glVertex3f(x - ds2, y - ds2, P47Screen.retroZ);
-          Screen3D.glVertex3f(x + ds2, y - ds2, P47Screen.retroZ);
-          Screen3D.glVertex3f(x + ds2, y + ds2, P47Screen.retroZ);
-          Screen3D.glVertex3f(x - ds2, y + ds2, P47Screen.retroZ);
-        }
+      if (n <= 0) {
+        return;
       }
-    } else {
-      const n = Math.floor(lx / ds);
-      if (n > 0) {
-        const yo = (y2 - y1) / n;
-        let yos = 0;
-        const xo = x2 < x1 ? -ds : ds;
-        let x = x1;
-        let y = y1;
-        for (let i = 0; i <= n; i++, x += xo, yos += yo) {
-          if (yos >= ds) {
-            y += ds;
-            yos -= ds;
-          } else if (yos <= -ds) {
-            y -= ds;
-            yos += ds;
-          }
-          Screen3D.glVertex3f(x - ds2, y - ds2, P47Screen.retroZ);
-          Screen3D.glVertex3f(x + ds2, y - ds2, P47Screen.retroZ);
-          Screen3D.glVertex3f(x + ds2, y + ds2, P47Screen.retroZ);
-          Screen3D.glVertex3f(x - ds2, y + ds2, P47Screen.retroZ);
+      const xo = (x2 - x1) / n;
+      let xos = 0;
+      const yo = y2 < y1 ? -ds : ds;
+      let x = x1;
+      let y = y1;
+      for (let i = 0; i <= n; i++, xos += xo, y += yo) {
+        if (xos >= ds) {
+          x += ds;
+          xos -= ds;
+        } else if (xos <= -ds) {
+          x -= ds;
+          xos += ds;
         }
+        Screen3D.glVertex3f(x - ds2, y - ds2, P47Screen.retroZ);
+        Screen3D.glVertex3f(x + ds2, y - ds2, P47Screen.retroZ);
+        Screen3D.glVertex3f(x + ds2, y + ds2, P47Screen.retroZ);
+        Screen3D.glVertex3f(x - ds2, y + ds2, P47Screen.retroZ);
       }
+      return;
     }
-    Screen3D.glEnd();
+    const n = Math.floor(lx / ds);
+    if (n <= 0) {
+      return;
+    }
+    const yo = (y2 - y1) / n;
+    let yos = 0;
+    const xo = x2 < x1 ? -ds : ds;
+    let x = x1;
+    let y = y1;
+    for (let i = 0; i <= n; i++, x += xo, yos += yo) {
+      if (yos >= ds) {
+        y += ds;
+        yos -= ds;
+      } else if (yos <= -ds) {
+        y -= ds;
+        yos += ds;
+      }
+      Screen3D.glVertex3f(x - ds2, y - ds2, P47Screen.retroZ);
+      Screen3D.glVertex3f(x + ds2, y - ds2, P47Screen.retroZ);
+      Screen3D.glVertex3f(x + ds2, y + ds2, P47Screen.retroZ);
+      Screen3D.glVertex3f(x - ds2, y + ds2, P47Screen.retroZ);
+    }
   }
 
   public static drawBoxRetro(x: number, y: number, width: number, height: number, deg: number): void {
@@ -190,4 +230,9 @@ export class P47Screen extends Screen3D {
     Screen3D.glVertex3f(x, y + height, 0);
     Screen3D.glEnd();
   }
+}
+
+interface RetroPoint {
+  x: number;
+  y: number;
 }
