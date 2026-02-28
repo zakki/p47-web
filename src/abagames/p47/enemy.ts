@@ -846,7 +846,31 @@ export class Enemy extends Actor {
     }
 
     const bodyShapePointNum = this.getEnemyTypeConst("BODY_SHAPE_POINT_NUM", 4);
-    P47Screen.drawLineLoopRetro(this.type.bodyShapePos.slice(0, bodyShapePointNum), this.pos.x, this.pos.y);
+    if (bodyShapePointNum === 4) {
+      P47Screen.drawLineLoopRetro4(
+        this.pos.x + this.type.bodyShapePos[0].x,
+        this.pos.y + this.type.bodyShapePos[0].y,
+        this.pos.x + this.type.bodyShapePos[1].x,
+        this.pos.y + this.type.bodyShapePos[1].y,
+        this.pos.x + this.type.bodyShapePos[2].x,
+        this.pos.y + this.type.bodyShapePos[2].y,
+        this.pos.x + this.type.bodyShapePos[3].x,
+        this.pos.y + this.type.bodyShapePos[3].y,
+      );
+    } else {
+      let ni = 1;
+      for (let i = 0; i < bodyShapePointNum; i++, ni++) {
+        if (ni >= bodyShapePointNum) {
+          ni = 0;
+        }
+        P47Screen.drawLineRetro(
+          this.pos.x + this.type.bodyShapePos[i].x,
+          this.pos.y + this.type.bodyShapePos[i].y,
+          this.pos.x + this.type.bodyShapePos[ni].x,
+          this.pos.y + this.type.bodyShapePos[ni].y,
+        );
+      }
+    }
 
     if (this.type.type !== this.getEnemyTypeConst("SMALL", 0)) {
       Screen3D.glBegin(Screen3D.GL_TRIANGLE_FAN);
@@ -880,7 +904,29 @@ export class Enemy extends Actor {
           this.pos.y + bt.wingShapePos[1].y,
         );
       } else {
-        P47Screen.drawLineLoopRetro(bt.wingShapePos.slice(0, wingShapePointNum), this.pos.x, this.pos.y);
+        if (wingShapePointNum === 3) {
+          P47Screen.drawLineLoopRetro3(
+            this.pos.x + bt.wingShapePos[0].x,
+            this.pos.y + bt.wingShapePos[0].y,
+            this.pos.x + bt.wingShapePos[1].x,
+            this.pos.y + bt.wingShapePos[1].y,
+            this.pos.x + bt.wingShapePos[2].x,
+            this.pos.y + bt.wingShapePos[2].y,
+          );
+        } else {
+          let ni = 1;
+          for (let j = 0; j < wingShapePointNum; j++, ni++) {
+            if (ni >= wingShapePointNum) {
+              ni = 0;
+            }
+            P47Screen.drawLineRetro(
+              this.pos.x + bt.wingShapePos[j].x,
+              this.pos.y + bt.wingShapePos[j].y,
+              this.pos.x + bt.wingShapePos[ni].x,
+              this.pos.y + bt.wingShapePos[ni].y,
+            );
+          }
+        }
         if (this.type.type !== this.getEnemyTypeConst("SMALL", 0)) {
           Screen3D.glBegin(Screen3D.GL_TRIANGLE_FAN);
           Screen3D.setColor(P47Screen.retroR, P47Screen.retroG, P47Screen.retroB, P47Screen.retroA);

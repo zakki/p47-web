@@ -13,6 +13,7 @@ export class P47Screen extends Screen3D {
   public static retroB = 1;
   public static retroA = 1;
   private static retroZ = 0;
+  private static retroVerticesScratch: number[] = [];
   private luminousScreen: LuminousScreen | null = null;
 
   protected override init(): void {
@@ -98,7 +99,7 @@ export class P47Screen extends Screen3D {
       Screen3D.glEnd();
       return;
     }
-    const vertices: number[] = [];
+    const vertices = P47Screen.getRetroVerticesScratch();
     P47Screen.emitRetroSegmentQuads(vertices, x1, y1, x2, y2);
     if (vertices.length > 0) {
       Screen3D.glDrawArrays(Screen3D.GL_QUADS, vertices, []);
@@ -119,7 +120,7 @@ export class P47Screen extends Screen3D {
       Screen3D.glEnd();
       return;
     }
-    const vertices: number[] = [];
+    const vertices = P47Screen.getRetroVerticesScratch();
     let ni = 1;
     for (let i = 0; i < points.length; i++, ni++) {
       if (ni >= points.length) {
@@ -129,6 +130,55 @@ export class P47Screen extends Screen3D {
       const p2 = points[ni];
       P47Screen.emitRetroSegmentQuads(vertices, offsetX + p1.x, offsetY + p1.y, offsetX + p2.x, offsetY + p2.y);
     }
+    if (vertices.length > 0) {
+      Screen3D.glDrawArrays(Screen3D.GL_QUADS, vertices, []);
+    }
+  }
+
+  public static drawLineLoopRetro4(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    x3: number,
+    y3: number,
+    x4: number,
+    y4: number,
+  ): void {
+    P47Screen.setRetroDrawColor();
+    if (P47Screen.retro < 0.2) {
+      Screen3D.glBegin(Screen3D.GL_LINE_LOOP);
+      Screen3D.glVertex3f(x1, y1, P47Screen.retroZ);
+      Screen3D.glVertex3f(x2, y2, P47Screen.retroZ);
+      Screen3D.glVertex3f(x3, y3, P47Screen.retroZ);
+      Screen3D.glVertex3f(x4, y4, P47Screen.retroZ);
+      Screen3D.glEnd();
+      return;
+    }
+    const vertices = P47Screen.getRetroVerticesScratch();
+    P47Screen.emitRetroSegmentQuads(vertices, x1, y1, x2, y2);
+    P47Screen.emitRetroSegmentQuads(vertices, x2, y2, x3, y3);
+    P47Screen.emitRetroSegmentQuads(vertices, x3, y3, x4, y4);
+    P47Screen.emitRetroSegmentQuads(vertices, x4, y4, x1, y1);
+    if (vertices.length > 0) {
+      Screen3D.glDrawArrays(Screen3D.GL_QUADS, vertices, []);
+    }
+  }
+
+  public static drawLineLoopRetro3(x1: number, y1: number, x2: number, y2: number, x3: number, y3: number): void {
+    P47Screen.setRetroDrawColor();
+    if (P47Screen.retro < 0.2) {
+      Screen3D.glBegin(Screen3D.GL_LINE_LOOP);
+      Screen3D.glVertex3f(x1, y1, P47Screen.retroZ);
+      Screen3D.glVertex3f(x2, y2, P47Screen.retroZ);
+      Screen3D.glVertex3f(x3, y3, P47Screen.retroZ);
+      Screen3D.glEnd();
+      return;
+    }
+    const vertices = P47Screen.getRetroVerticesScratch();
+    P47Screen.emitRetroSegmentQuads(vertices, x1, y1, x2, y2);
+    P47Screen.emitRetroSegmentQuads(vertices, x2, y2, x3, y3);
+    P47Screen.emitRetroSegmentQuads(vertices, x3, y3, x1, y1);
     if (vertices.length > 0) {
       Screen3D.glDrawArrays(Screen3D.GL_QUADS, vertices, []);
     }
@@ -226,15 +276,26 @@ export class P47Screen extends Screen3D {
     }
   }
 
+  private static getRetroVerticesScratch(): number[] {
+    P47Screen.retroVerticesScratch.length = 0;
+    return P47Screen.retroVerticesScratch;
+  }
+
   public static drawBoxRetro(x: number, y: number, width: number, height: number, deg: number): void {
     const w1 = width * Math.cos(deg) - height * Math.sin(deg);
     const h1 = width * Math.sin(deg) + height * Math.cos(deg);
     const w2 = -width * Math.cos(deg) - height * Math.sin(deg);
     const h2 = -width * Math.sin(deg) + height * Math.cos(deg);
-    P47Screen.drawLineRetro(x + w2, y - h2, x + w1, y - h1);
-    P47Screen.drawLineRetro(x + w1, y - h1, x - w2, y + h2);
-    P47Screen.drawLineRetro(x - w2, y + h2, x - w1, y + h1);
-    P47Screen.drawLineRetro(x - w1, y + h1, x + w2, y - h2);
+    P47Screen.drawLineLoopRetro4(
+      x + w2,
+      y - h2,
+      x + w1,
+      y - h1,
+      x - w2,
+      y + h2,
+      x - w1,
+      y + h1,
+    );
   }
 
   public static drawBoxLine(x: number, y: number, width: number, height: number): void {
