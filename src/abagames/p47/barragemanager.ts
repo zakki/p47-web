@@ -56,26 +56,26 @@ export class BarrageManager {
 
   public async loadBulletMLs(): Promise<void> {
     const sourceByDir = this.collectXmlTextByDir();
-    const preloads: Array<Promise<void>> = [];
     for (let i = 0; i < this.BARRAGE_TYPE; i++) {
       const dir = this.dirName[i];
       const files = sourceByDir.get(dir) ?? [];
-      let j = 0;
+      let loaded = 0;
       for (const file of files) {
-        if (j >= this.BARRAGE_MAX) break;
+        if (loaded >= this.BARRAGE_MAX) break;
         const barrageName = `${dir}/${file.name}`;
         Logger.info(`Load BulletML: ${barrageName}`);
-        const parser = new BulletMLParserAsset(
-          barrageName,
-          `data:text/xml;charset=utf-8,${encodeURIComponent(file.xmlText)}`,
-        );
-        this.parser[i][j] = parser;
-        preloads.push(parser.preload());
-        j++;
+        const parser = new BulletMLParserAsset(barrageName, "", file.xmlText);
+        try {
+          await parser.preload();
+          this.parser[i][loaded] = parser;
+          loaded++;
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          Logger.error(`Failed to load BulletML: ${barrageName} (${msg})`);
+        }
       }
-      this.parserNum[i] = j;
+      this.parserNum[i] = loaded;
     }
-    await Promise.all(preloads);
   }
 
   public unloadBulletMLs(): void {

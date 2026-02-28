@@ -139,7 +139,23 @@ export abstract class Screen3D implements Screen {
       Screen3D.overlayCanvas.style.height = `${height}px`;
     }
     Screen3D.gl?.resize(width, height);
+    this.resetProjectionForResize();
     this.screenResized();
+  }
+
+  private resetProjectionForResize(): void {
+    const near = Screen3D.nearPlane;
+    const far = Screen3D.farPlane;
+    const w = Math.max(1, Screen3D.width);
+    const h = Math.max(1, Screen3D.height);
+    const top = (near * h) / w;
+    const bottom = -top;
+    const left = -near;
+    const right = near;
+    Screen3D.glMatrixMode(Screen3D.GL_PROJECTION);
+    Screen3D.glLoadIdentity();
+    Screen3D.glFrustum(left, right, bottom, top, 0.1, far);
+    Screen3D.glMatrixMode(Screen3D.GL_MODELVIEW);
   }
 
   public closeSDL(): void {
