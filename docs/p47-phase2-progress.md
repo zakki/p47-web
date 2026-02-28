@@ -269,12 +269,27 @@
   - `inGame/title/gameover/pause` の move/draw 系分岐とサイド情報描画
   - 画面シェイク (`setScreenShake`, `moveScreenShake`, `setEyepos`) とボスシールドメータ描画
 - 残差:
-  - `P47Screen` 側に発光パス用フックが未実装のため、D版の render-to-texture 合成を完全再現できていない
   - `BarrageManager` の非同期ロードにより、D版の「初期化完了時点で弾幕ロード済み」保証は未達
   - `Title/StageManager/Shot/Roll/Particle/P47PrefManager` の一部がスタブのため、該当箇所は防御的呼び出しで接続
 - 追加した PORT_NOTE:
   - p47-web/src/abagames/p47/gamemanager.ts:199 - BulletML ロード非同期化による起動直後差分
-  - p47-web/src/abagames/p47/gamemanager.ts:536 - P47Screen の発光/固定オーソ描画フック未実装
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
+
+### P47Screen.d -> screen.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `init` の OpenGL 初期化順と状態（`GL_LINE_SMOOTH` 有効化、`GL_SRC_ALPHA/GL_ONE` ブレンド、各 `glDisable` 呼び出し）
+  - `luminous` 設定に応じた `LuminousScreen` の生成/破棄と `startRenderToTexture` / `endRenderToTexture` / `drawLuminous` の中継
+  - `resized` の `LuminousScreen.resized` → `super.resized` 呼び出し順
+  - `viewOrthoFixed` / `viewPerspective` の行列 push/pop と固定 640x480 オーソ投影
+  - `rand` の `init` 時再初期化と retro 描画ロジックの維持
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
 - 検証:
   - typecheck: pass
   - build: pass

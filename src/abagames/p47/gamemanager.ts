@@ -532,12 +532,6 @@ export class P47GameManager extends BaseGameManager {
         break;
     }
     this.screen.viewPerspective?.();
-
-    // PORT_NOTE[D:P47GameManager.d#draw.screenHooks]:
-    // D版screenはstartRenderToTexture/endRenderToTexture/drawLuminous/viewOrthoFixed/viewPerspectiveを提供するが、
-    // 現在のTS版P47Screenは未実装。
-    // 影響: 発光合成と固定オーソ投影の描画がD版と一致しない。
-    // TODO: P47ScreenへLuminousScreen統合を実装し、drawパスをD版同等化する。
   }
 
   private initShipState(): void {
