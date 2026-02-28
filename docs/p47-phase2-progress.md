@@ -14,3 +14,19 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Bonus.d -> bonus.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `rate`/`bonusScore` と `BASE_SPEED`/`INHALE_WIDTH`/`ACQUIRE_WIDTH`/`RETRO_CNT`/`BOX_SIZE` 定数
+  - `init`・`set`・`missBonus`・`getBonus`・`move`・`draw` の制御フローとしきい値
+  - 吸引(`isInhaled`/`inhaleCnt`)と取得判定(`ship.cnt` と `INVINCIBLE_CNT`)の条件式
+  - 取得時SE(`GET_BONUS`)と加点処理、取り逃し時 `bonusScore` リセット
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施

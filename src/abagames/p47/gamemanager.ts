@@ -9,6 +9,7 @@ const SDLK_p = 80;
 
 export class P47GameManager extends BaseGameManager {
   public nowait = false;
+  public score = 0;
   private pad!: Pad;
   private prefManager!: P47PrefManager;
   private frame = 0;
@@ -77,5 +78,9 @@ export class P47GameManager extends BaseGameManager {
     ctx.fillText("Controls: Arrow / Z / X / P / ESC", 20, 114);
     if (this.pause) ctx.fillText("PAUSE", 20, 138);
     ctx.restore();
+  }
+
+  public addScore(sc: number): void {
+    this.score += sc;
   }
 }
