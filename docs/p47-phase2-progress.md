@@ -244,3 +244,18 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### P47Bullet.d -> p47bullet.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `MorphBullet` 継承と `constructor(id)` での `super(id)` 呼び出し
+  - `speedRank` / `shape` / `color` / `bulletSize` / `xReverse` の公開状態
+  - `setParam(sr, sh, cl, sz, xr)` の代入順と責務
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
