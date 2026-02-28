@@ -13,6 +13,7 @@ export class P47Screen extends Screen3D {
   public static retroB = 1;
   public static retroA = 1;
   private static retroZ = 0;
+  private static readonly RETRO_SEGMENT_MAX = 256;
   private luminousScreen: LuminousScreen | null = null;
 
   protected override init(): void {
@@ -90,6 +91,14 @@ export class P47Screen extends Screen3D {
   }
 
   public static drawLineRetro(x1: number, y1: number, x2: number, y2: number): void {
+    if (
+      !Number.isFinite(x1) ||
+      !Number.isFinite(y1) ||
+      !Number.isFinite(x2) ||
+      !Number.isFinite(y2)
+    ) {
+      return;
+    }
     const cf = (1 - P47Screen.retro) * 0.5;
     let r = P47Screen.retroR + (1 - P47Screen.retroR) * cf;
     let g = P47Screen.retroG + (1 - P47Screen.retroG) * cf;
@@ -110,12 +119,19 @@ export class P47Screen extends Screen3D {
       return;
     }
     const ds = P47Screen.retroSize * P47Screen.retro;
+    if (!Number.isFinite(ds) || ds <= 0.0001) {
+      Screen3D.glBegin(Screen3D.GL_LINES);
+      Screen3D.glVertex3f(x1, y1, P47Screen.retroZ);
+      Screen3D.glVertex3f(x2, y2, P47Screen.retroZ);
+      Screen3D.glEnd();
+      return;
+    }
     const ds2 = ds / 2;
     const lx = Math.abs(x2 - x1);
     const ly = Math.abs(y2 - y1);
     Screen3D.glBegin(Screen3D.GL_QUADS);
     if (lx < ly) {
-      const n = Math.floor(ly / ds);
+      const n = Math.min(Math.floor(ly / ds), P47Screen.RETRO_SEGMENT_MAX);
       if (n > 0) {
         const xo = (x2 - x1) / n;
         let xos = 0;
@@ -137,7 +153,7 @@ export class P47Screen extends Screen3D {
         }
       }
     } else {
-      const n = Math.floor(lx / ds);
+      const n = Math.min(Math.floor(lx / ds), P47Screen.RETRO_SEGMENT_MAX);
       if (n > 0) {
         const yo = (y2 - y1) / n;
         let yos = 0;
