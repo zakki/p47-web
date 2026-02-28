@@ -65,3 +65,21 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Enemy.d -> enemy.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `set` / `setBoss` / `moveBoss` / `gotoNextPoint` / `controlFireCnt` の移動・弾発射制御
+  - `checkHit` / `checkLocked` / `checkDamage` の当たり判定と `SHOT/ROLL/LOCK` ダメージ分岐
+  - `addDamage` / `addDamageBattery` / `removeTopBullets` / `remove` の破壊副作用と後始末
+  - `move` / `draw` の更新順序・出現/撃破/タイムアウト演出・ボスシールドメータ更新
+  - `EnemyInitializer` の依存注入構造（`field/bullets/shots/rolls/locks/ship/manager`）
+- 残差:
+  - `EnemyType` / `Lock` / `Roll` / `Shot` / `P47GameManager` の TS 側がスタブのため、定数・状態参照はフォールバック付きで暫定接続
+  - `BulletActorPool.registFunctions` 未実装時に callback 登録が欠落しうる
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/enemy.ts:930 - `registFunctions` 未定義時の BulletML callback 未接続リスク
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
