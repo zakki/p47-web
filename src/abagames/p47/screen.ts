@@ -142,4 +142,13 @@ export class P47Screen extends Screen3D {
     Screen3D.glVertex3f(x, y + height, 0);
     Screen3D.glEnd();
   }
+
+  public static drawBoxSolid(x: number, y: number, width: number, height: number): void {
+    Screen3D.glBegin(Screen3D.GL_TRIANGLE_FAN);
+    Screen3D.glVertex3f(x, y, 0);
+    Screen3D.glVertex3f(x + width, y, 0);
+    Screen3D.glVertex3f(x + width, y + height, 0);
+    Screen3D.glVertex3f(x, y + height, 0);
+    Screen3D.glEnd();
+  }
 }

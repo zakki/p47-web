@@ -132,3 +132,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### LetterRender.d -> letterrender.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `WHITE/RED` と `TO_RIGHT/TO_DOWN/TO_LEFT/TO_UP` の定数契約
+  - `changeColor` / `drawString` / `drawNum` の文字インデックス変換・進行方向・桁処理
+  - `drawBox` / `drawLetter(idx,r,g,b)` の比率係数 (`size*0.66` / `length*0.6`) と縦横判定
+  - `createDisplayLists` / `deleteDisplayLists` の 2色×`LETTER_NUM(42)` 生成順
+  - `spData` グリフ定義（42 文字）を D 版と同値で移植
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
