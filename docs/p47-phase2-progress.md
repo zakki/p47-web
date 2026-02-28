@@ -260,6 +260,23 @@
   - build: pass
   - 手動確認: 未実施
 
+### Shot.d -> shot.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `Shot` を `Actor` 継承として実装し、`init`/`set`/`move`/`draw` の責務を D 版と同順で移植
+  - `SPEED=1`、`FIELD_SPACE=1`、`RETRO_CNT=4` の定数と、`sin/cos` による速度計算・移動更新
+  - `field.checkHit(pos, FIELD_SPACE)` による消滅判定と `cnt` 更新タイミング
+  - `P47Screen.setRetroParam(r, 0.2)` + `drawBoxRetro(..., 0.2, 1, deg)` の描画仕様
+  - `ShotInitializer(field)` による `Field` 依存注入
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
+
 ### Ship.d -> ship.ts
 - 対応状況: 完了
 - 一致させた項目:
