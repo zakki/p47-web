@@ -279,3 +279,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### P47PrefManager.d -> prefmanager.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `PREV_VERSION_NUM=10` / `VERSION_NUM=20` / `MODE_NUM=2` / `DIFFICULTY_NUM=4` / `REACHED_PARSEC_SLOT_NUM=10` の定数契約
+  - `init` で `hiScore[mode][difficulty][slot]` と `reachedParsec[mode][difficulty]` を 0 初期化し、`selectedDifficulty=1` / `selectedParsecSlot=0` / `selectedMode=0` を設定
+  - `loadPrevVersionData` で旧バージョン（モード次元なし）のデータを mode 0 に移行する処理
+  - `load` のバージョン分岐（`ver==10` は旧データ読込、`ver!=20` は初期化）と例外時 `init()` のフォールバック
+  - `save` で現行バージョン構造の全フィールドを永続化する処理
+- 残差:
+  - D版 `std.stream.File` バイナリI/O を Web 環境では使用できないため、localStorage(JSON) で代替
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/prefmanager.ts:76 - バイナリファイル保存との差分と再実装 TODO
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
