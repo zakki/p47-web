@@ -212,3 +212,19 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### MorphBullet.d -> morphbullet.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `Bullet` 継承と `MORPH_MAX=8` の定数契約
+  - morph 状態 (`morphParser/morphNum/morphIdx/morphCnt/baseMorphIdx/baseMorphCnt/isMorph`) の保持
+  - `setMorph` の `cnt<=0` 早期 return、`morphIdx` 正規化、ベース値保存の更新順
+  - `resetMorph` の `morphIdx/morphCnt` 復元処理
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
