@@ -414,3 +414,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Title.d -> title.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `init` / `close` / `start` / `getStartParsec` / `move` / `setStatus` / `changeMode` / `draw` の public API と制御フロー
+  - 難易度・開始パーセク・モードの選択ロジック、および `slotNum` 計算式（`(reached-1)/10+1`, 上限10）
+  - カーソル移動（上下左右のラップ・スロット範囲補正）と入力時 `startStage` 即時反映
+  - タイトル画面の文字列描画、選択ボックス点滅拡張、ハイスコア/START PARSEC 表示条件
+  - モード変更時の `field.setColor(mode)` と `startStage` 再初期化
+- 残差:
+  - D版の同期テクスチャロードに対し、Web版 `Texture` は非同期ロードのため初回フレームの看板描画タイミングが一致しない
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/title.ts:167 - `drawTitleBoard` の非同期テクスチャロード差分
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
