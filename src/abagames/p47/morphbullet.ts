@@ -1,14 +1,10 @@
 import { Bullet } from "../util/bulletml/bullet";
-import type { BulletMLRunner } from "../util/bulletml/bullet";
-
-type BulletMLParserLike = {
-  createRunner: () => BulletMLRunner;
-};
+import type { BulletMLParserAsset } from "../util/bulletml/runtime";
 
 export class MorphBullet extends Bullet {
   public static readonly MORPH_MAX = 8;
 
-  public morphParser: BulletMLParserLike[] = [];
+  public morphParser: BulletMLParserAsset[] = [];
   public morphNum = 0;
   public morphIdx = 0;
   public morphCnt = 0;
@@ -20,7 +16,7 @@ export class MorphBullet extends Bullet {
     super(id);
   }
 
-  public setMorph(mrp: BulletMLParserLike[], num: number, idx: number, cnt: number): void {
+  public setMorph(mrp: BulletMLParserAsset[], num: number, idx: number, cnt: number): void {
     if (cnt <= 0) {
       this.isMorph = false;
       return;

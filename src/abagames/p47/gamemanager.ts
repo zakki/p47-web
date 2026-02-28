@@ -6,6 +6,7 @@ import { Music } from "../util/sdl/sound";
 import { Pad } from "../util/sdl/pad";
 import { Screen3D } from "../util/sdl/screen3d";
 import { Vector } from "../util/vector";
+import type { BulletMLParserAsset } from "../util/bulletml/runtime";
 import { BarrageManager } from "./barragemanager";
 import { Bonus, BonusInitializer } from "./bonus";
 import { BulletActor, BulletActorInitializer } from "./bulletactor";
@@ -32,10 +33,6 @@ const SDL_PRESSED = 1;
 const SDLK_ESCAPE = 27;
 const SDLK_p = 80;
 const SDL_VIDEORESIZE = 16;
-
-type BulletMLParserLike = {
-  createRunner: () => unknown;
-};
 
 type StageManagerLike = StageManager & {
   parsec?: number;
@@ -320,9 +317,9 @@ export class P47GameManager extends BaseGameManager {
     }
   }
 
-  public addEnemy(pos: Vector, d: number, type: EnemyType, moveParser: BulletMLParserLike): void {
+  public addEnemy(pos: Vector, d: number, type: EnemyType, moveParser: BulletMLParserAsset): void {
     const enemy = this.enemies.getInstance() as {
-      set?: (p: Vector, deg: number, tp: EnemyType, parser: BulletMLParserLike) => void;
+      set?: (p: Vector, deg: number, tp: EnemyType, parser: BulletMLParserAsset) => void;
       exists?: boolean;
     } | null;
     if (!enemy) {

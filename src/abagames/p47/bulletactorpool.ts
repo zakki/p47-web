@@ -19,25 +19,10 @@ import {
   getRank_,
   getTurn_,
 } from "../util/bulletml/bullet";
+import type { BulletMLParserAsset } from "../util/bulletml/runtime";
 import type { BulletsManager } from "../util/bulletml/bulletsmanager";
 import { BulletActor, BulletActorInitializer } from "./bulletactor";
-
-type BulletMLParserLike = {
-  createRunner: () => BulletMLRunner;
-};
-
-type P47BulletLike = Bullet & {
-  isMorph?: boolean;
-  speedRank?: number;
-  shape?: number;
-  color?: number;
-  bulletSize?: number;
-  xReverse?: number;
-  morphParser?: BulletMLParserLike[];
-  morphNum?: number;
-  morphIdx?: number;
-  morphCnt?: number;
-};
+import type { P47Bullet } from "./p47bullet";
 
 /**
  * Bullet actor pool that works as the BulletsManager.
@@ -52,9 +37,7 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
     this.cnt = 0;
   }
 
-  public addBullet(deg: number, speed: number): void;
-  public addBullet(state: BulletMLState, deg: number, speed: number): void;
-  public addBullet(
+  public addManagedBullet(
     runner: BulletMLRunner,
     x: number,
     y: number,
@@ -66,9 +49,16 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
     color: number,
     size: number,
     xReverse: number,
-  ): BulletActor | null;
-  public addBullet(
-    parser: BulletMLParserLike,
+  ): BulletActor | null {
+    const ba = this.acquireActor();
+    if (!ba) return null;
+    ba.setRunnerBullet(runner, x, y, deg, speed, rank, speedRank, shape, color, size, xReverse);
+    ba.setInvisible();
+    return ba;
+  }
+
+  public addTopBullet(
+    parser: BulletMLParserAsset,
     runner: BulletMLRunner,
     x: number,
     y: number,
@@ -80,9 +70,15 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
     color: number,
     size: number,
     xReverse: number,
-  ): BulletActor | null;
-  public addBullet(
-    parser: BulletMLParserLike,
+  ): BulletActor | null {
+    const ba = this.addManagedBullet(runner, x, y, deg, speed, rank, speedRank, shape, color, size, xReverse);
+    if (!ba) return null;
+    ba.setTop(parser);
+    return ba;
+  }
+
+  public addTopMorphBullet(
+    parser: BulletMLParserAsset,
     runner: BulletMLRunner,
     x: number,
     y: number,
@@ -94,78 +90,31 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
     color: number,
     size: number,
     xReverse: number,
-    morph: BulletMLParserLike[],
+    morph: BulletMLParserAsset[],
     morphNum: number,
     morphCnt: number,
-  ): BulletActor | null;
-  public addBullet(...args: unknown[]): void | BulletActor | null {
-    if (args.length === 2 && typeof args[0] === "number" && typeof args[1] === "number") {
-      this.addSimpleBullet(args[0], args[1]);
-      return;
-    }
-    if (args.length === 3 && typeof args[1] === "number" && typeof args[2] === "number") {
-      this.addStateBullet(args[0] as BulletMLState, args[1], args[2]);
-      return;
-    }
-    if (args.length === 11) {
-      return this.addManagedBullet(args as [
-        BulletMLRunner,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-      ]);
-    }
-    if (args.length === 12) {
-      const ba = this.addManagedBullet(args.slice(1) as [
-        BulletMLRunner,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-      ]);
-      if (!ba) return null;
-      ba.setTop(args[0] as BulletMLParserLike);
-      return ba;
-    }
-    if (args.length === 15) {
-      const ba = this.acquireActor();
-      if (!ba) return null;
-      const parser = args[0] as BulletMLParserLike;
-      const runner = args[1] as BulletMLRunner;
-      ba.set(
-        runner,
-        args[2] as number,
-        args[3] as number,
-        args[4] as number,
-        args[5] as number,
-        args[6] as number,
-        args[7] as number,
-        args[8] as number,
-        args[9] as number,
-        args[10] as number,
-        args[11] as number,
-        args[12] as BulletMLParserLike[],
-        args[13] as number,
-        0,
-        args[14] as number,
-      );
-      ba.setTop(parser);
-      return ba;
-    }
-    throw new Error("BulletActorPool.addBullet: invalid argument pattern");
+  ): BulletActor | null {
+    const ba = this.acquireActor();
+    if (!ba) return null;
+    ba.setRunnerMorphBullet(
+      runner,
+      x,
+      y,
+      deg,
+      speed,
+      rank,
+      speedRank,
+      shape,
+      color,
+      size,
+      xReverse,
+      morph,
+      morphNum,
+      0,
+      morphCnt,
+    );
+    ba.setTop(parser);
+    return ba;
   }
 
   public override move(): void {
@@ -227,33 +176,33 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
     return this.getInstance();
   }
 
-  private addSimpleBullet(deg: number, speed: number): void {
+  public addSimpleBullet(deg: number, speed: number): void {
     const ba = this.acquireActor();
     if (!ba) return;
-    const rb = Bullet.now as P47BulletLike;
-    const morphParser = rb.morphParser ?? [];
-    const morphNum = rb.morphNum ?? 0;
-    const morphIdx = rb.morphIdx ?? 0;
-    const morphCnt = rb.morphCnt ?? 0;
+    const rb = Bullet.now as P47Bullet;
+    const morphParser = rb.morphParser;
+    const morphNum = rb.morphNum;
+    const morphIdx = rb.morphIdx;
+    const morphCnt = rb.morphCnt;
     if (rb.isMorph) {
       const parser = morphParser[morphIdx];
       if (!parser) {
-        return;
+        throw new Error(`Morph parser missing at index ${morphIdx} (morphNum=${morphNum})`);
       }
       const runner = parser.createRunner();
       BulletActorPool.registFunctions(runner);
-      ba.set(
+      ba.setRunnerMorphBullet(
         runner,
         Bullet.now.pos.x,
         Bullet.now.pos.y,
         deg,
         speed,
         Bullet.now.rank,
-        rb.speedRank ?? 1,
-        rb.shape ?? 0,
-        rb.color ?? 0,
-        rb.bulletSize ?? 1,
-        rb.xReverse ?? 1,
+        rb.speedRank,
+        rb.shape,
+        rb.color,
+        rb.bulletSize,
+        rb.xReverse,
         morphParser,
         morphNum,
         morphIdx + 1,
@@ -261,79 +210,59 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
       );
       return;
     }
-    ba.setSimple(
+    ba.setSimpleBullet(
       Bullet.now.pos.x,
       Bullet.now.pos.y,
       deg,
       speed,
       Bullet.now.rank,
-      rb.speedRank ?? 1,
-      rb.shape ?? 0,
-      rb.color ?? 0,
-      rb.bulletSize ?? 1,
-      rb.xReverse ?? 1,
+      rb.speedRank,
+      rb.shape,
+      rb.color,
+      rb.bulletSize,
+      rb.xReverse,
     );
   }
 
-  private addStateBullet(state: BulletMLState, deg: number, speed: number): void {
+  public addStateBullet(state: BulletMLState, deg: number, speed: number): void {
     const ba = this.acquireActor();
     if (!ba) return;
     const runner = this.createRunnerFromState(state);
     BulletActorPool.registFunctions(runner);
-    const rb = Bullet.now as P47BulletLike;
+    const rb = Bullet.now as P47Bullet;
     if (rb.isMorph) {
-      ba.set(
+      ba.setRunnerMorphBullet(
         runner,
         Bullet.now.pos.x,
         Bullet.now.pos.y,
         deg,
         speed,
         Bullet.now.rank,
-        rb.speedRank ?? 1,
-        rb.shape ?? 0,
-        rb.color ?? 0,
-        rb.bulletSize ?? 1,
-        rb.xReverse ?? 1,
-        rb.morphParser ?? [],
-        rb.morphNum ?? 0,
-        rb.morphIdx ?? 0,
-        rb.morphCnt ?? 0,
+        rb.speedRank,
+        rb.shape,
+        rb.color,
+        rb.bulletSize,
+        rb.xReverse,
+        rb.morphParser,
+        rb.morphNum,
+        rb.morphIdx,
+        rb.morphCnt,
       );
       return;
     }
-    ba.set(
+    ba.setRunnerBullet(
       runner,
       Bullet.now.pos.x,
       Bullet.now.pos.y,
       deg,
       speed,
       Bullet.now.rank,
-      rb.speedRank ?? 1,
-      rb.shape ?? 0,
-      rb.color ?? 0,
-      rb.bulletSize ?? 1,
-      rb.xReverse ?? 1,
+      rb.speedRank,
+      rb.shape,
+      rb.color,
+      rb.bulletSize,
+      rb.xReverse,
     );
-  }
-
-  private addManagedBullet(args: [
-    BulletMLRunner,
-    number,
-    number,
-    number,
-    number,
-    number,
-    number,
-    number,
-    number,
-    number,
-    number,
-  ]): BulletActor | null {
-    const ba = this.acquireActor();
-    if (!ba) return null;
-    ba.set(...args);
-    ba.setInvisible();
-    return ba;
   }
 
   private createRunnerFromState(state: BulletMLState): BulletMLRunner {
@@ -344,6 +273,6 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
 function getAimDirectionWithXRev_(r: BulletMLRunner): number {
   const b = Bullet.now.pos;
   const t = Bullet.target;
-  const xrev = (Bullet.now as P47BulletLike).xReverse ?? 1;
+  const xrev = (Bullet.now as P47Bullet).xReverse;
   return (Math.atan2(t.x - b.x, t.y - b.y) * xrev * 180) / Math.PI;
 }

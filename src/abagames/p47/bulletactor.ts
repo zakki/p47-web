@@ -2,6 +2,7 @@ import { Actor } from "../util/actor";
 import { Vector } from "../util/vector";
 import type { BulletMLRunner } from "../util/bulletml/bullet";
 import { rtod } from "../util/bulletml/bullet";
+import type { BulletMLParserAsset } from "../util/bulletml/runtime";
 import { DisplayList } from "../util/sdl/displaylist";
 import { Screen3D } from "../util/sdl/screen3d";
 import { BulletActorPool } from "./bulletactorpool";
@@ -10,43 +11,7 @@ import { P47Bullet } from "./p47bullet";
 import { P47Screen } from "./screen";
 import { Ship } from "./ship";
 
-type BulletMLParserLike = {
-  createRunner: () => BulletMLRunner;
-};
-
 type BulletShapePoint = readonly [number, number];
-
-type P47BulletLike = {
-  pos: Vector;
-  acc: Vector;
-  deg: number;
-  speed: number;
-  rank: number;
-  id: number;
-  isMorph: boolean;
-  speedRank: number;
-  shape: number;
-  color: number;
-  bulletSize: number;
-  xReverse: number;
-  morphParser: BulletMLParserLike[];
-  morphNum: number;
-  morphIdx: number;
-  morphCnt: number;
-  set: (x: number, y: number, deg: number, speed: number, rank: number) => void;
-  move: () => void;
-  isEnd: () => boolean;
-  remove: () => void;
-  setRunner: (runner: BulletMLRunner) => void;
-  setMorph: (
-    morph: BulletMLParserLike[],
-    morphNum: number,
-    morphIdx: number,
-    morphCnt: number,
-  ) => void;
-  resetMorph: () => void;
-  setParam: (speedRank: number, shape: number, color: number, size: number, xReverse: number) => void;
-};
 
 /**
  * Actor of the bullet.
@@ -126,14 +91,14 @@ export class BulletActor extends Actor {
     ],
   ];
 
-  public bullet!: P47BulletLike;
+  public bullet!: P47Bullet;
 
   private field!: Field;
   private ship!: Ship;
   private isSimple = false;
   private isTop = false;
   private isVisible = true;
-  private parser: BulletMLParserLike | null = null;
+  private parser: BulletMLParserAsset | null = null;
   private ppos = new Vector();
   private cnt = 0;
   private rtCnt = 0;
@@ -164,57 +129,8 @@ export class BulletActor extends Actor {
     this.exists = false;
   }
 
-  private createBullet(id: number): P47BulletLike {
-    const bulletCtor = P47Bullet as unknown as new (id?: number) => unknown;
-    const bullet = new bulletCtor(id) as Partial<P47BulletLike> & {
-      pos?: Vector;
-      acc?: Vector;
-    };
-    bullet.pos ??= new Vector();
-    bullet.acc ??= new Vector();
-    bullet.deg ??= 0;
-    bullet.speed ??= 0;
-    bullet.rank ??= 0;
-    bullet.id ??= id;
-    bullet.isMorph ??= false;
-    bullet.speedRank ??= 1;
-    bullet.shape ??= 0;
-    bullet.color ??= 0;
-    bullet.bulletSize ??= 1;
-    bullet.xReverse ??= 1;
-    bullet.morphParser ??= [];
-    bullet.morphNum ??= 0;
-    bullet.morphIdx ??= 0;
-    bullet.morphCnt ??= 0;
-    bullet.set ??= (x, y, deg, speed, rank) => {
-      bullet.pos!.x = x;
-      bullet.pos!.y = y;
-      bullet.acc!.x = 0;
-      bullet.acc!.y = 0;
-      bullet.deg = deg;
-      bullet.speed = speed;
-      bullet.rank = rank;
-    };
-    bullet.move ??= () => {};
-    bullet.isEnd ??= () => true;
-    bullet.remove ??= () => {};
-    bullet.setRunner ??= () => {};
-    bullet.setMorph ??= (morph, morphNum, morphIdx, morphCnt) => {
-      bullet.isMorph = morphCnt > 0;
-      bullet.morphParser = morph.slice(0, morphNum);
-      bullet.morphNum = morphNum;
-      bullet.morphIdx = morphIdx;
-      bullet.morphCnt = morphCnt;
-    };
-    bullet.resetMorph ??= () => {};
-    bullet.setParam ??= (speedRank, shape, color, size, xReverse) => {
-      bullet.speedRank = speedRank;
-      bullet.shape = shape;
-      bullet.color = color;
-      bullet.bulletSize = size;
-      bullet.xReverse = xReverse;
-    };
-    return bullet as P47BulletLike;
+  private createBullet(id: number): P47Bullet {
+    return new P47Bullet(id);
   }
 
   private start(speedRank: number, shape: number, color: number, size: number, xReverse: number): void {
@@ -230,7 +146,7 @@ export class BulletActor extends Actor {
     this.backToRetro = false;
   }
 
-  public set(
+  public setRunnerBullet(
     runner: BulletMLRunner,
     x: number,
     y: number,
@@ -242,24 +158,39 @@ export class BulletActor extends Actor {
     color: number,
     size: number,
     xReverse: number,
-    morph?: BulletMLParserLike[],
-    morphNum = 0,
-    morphIdx = 0,
-    morphCnt = 0,
   ): void {
     this.bullet.set(x, y, deg, speed, rank);
     this.bullet.setRunner(runner);
-    if (morph && morphNum > 0) {
-      this.bullet.setMorph(morph, morphNum, morphIdx, morphCnt);
-      this.bullet.isMorph = true;
-    } else {
-      this.bullet.isMorph = false;
-    }
+    this.bullet.isMorph = false;
     this.isSimple = false;
     this.start(speedRank, shape, color, size, xReverse);
   }
 
-  public setSimple(
+  public setRunnerMorphBullet(
+    runner: BulletMLRunner,
+    x: number,
+    y: number,
+    deg: number,
+    speed: number,
+    rank: number,
+    speedRank: number,
+    shape: number,
+    color: number,
+    size: number,
+    xReverse: number,
+    morph: BulletMLParserAsset[],
+    morphNum: number,
+    morphIdx: number,
+    morphCnt: number,
+  ): void {
+    this.bullet.set(x, y, deg, speed, rank);
+    this.bullet.setRunner(runner);
+    this.bullet.setMorph(morph, morphNum, morphIdx, morphCnt);
+    this.isSimple = false;
+    this.start(speedRank, shape, color, size, xReverse);
+  }
+
+  public setSimpleBullet(
     x: number,
     y: number,
     deg: number,
@@ -281,7 +212,7 @@ export class BulletActor extends Actor {
     this.isVisible = false;
   }
 
-  public setTop(parser: BulletMLParserLike): void {
+  public setTop(parser: BulletMLParserAsset): void {
     this.parser = parser;
     this.isTop = true;
     this.setInvisible();

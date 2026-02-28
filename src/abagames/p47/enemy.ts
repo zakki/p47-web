@@ -2,6 +2,7 @@ import { Actor, type ActorPool } from "../util/actor";
 import { Rand } from "../util/rand";
 import { Vector } from "../util/vector";
 import type { BulletMLRunner } from "../util/bulletml/bullet";
+import type { BulletMLParserAsset } from "../util/bulletml/runtime";
 import { Screen3D } from "../util/sdl/screen3d";
 import { Bonus } from "./bonus";
 import type { BulletActor } from "./bulletactor";
@@ -16,13 +17,9 @@ import { Ship } from "./ship";
 import { Shot } from "./shot";
 import { SoundManager } from "./soundmanager";
 
-type BulletMLParserLike = {
-  createRunner: () => BulletMLRunner;
-};
-
 type BarrageLike = {
-  parser: BulletMLParserLike;
-  morphParser: BulletMLParserLike[];
+  parser: BulletMLParserAsset;
+  morphParser: BulletMLParserAsset[];
   morphNum: number;
   morphCnt: number;
   rank: number;
@@ -223,14 +220,14 @@ export class Enemy extends Actor {
     this.fieldLimitY = (this.field.size.y / 4) * 3;
   }
 
-  public set(p: Vector, d: number, type: EnemyType, moveParser: BulletMLParserLike): void {
+  public set(p: Vector, d: number, type: EnemyType, moveParser: BulletMLParserAsset): void {
     this.pos.x = p.x;
     this.pos.y = p.y;
     this.type = type as unknown as EnemyTypeLike;
     const moveRunner = moveParser.createRunner();
     this.registFunctions(moveRunner);
     this.moveBullet =
-      (this.bullets.addBullet(moveRunner, this.pos.x, this.pos.y, d, 0, 0.5, 1, 0, 0, 1, 1) as
+      (this.bullets.addManagedBullet(moveRunner, this.pos.x, this.pos.y, d, 0, 0.5, 1, 0, 0, 1, 1) as
         | BulletActorLike
         | null) ?? null;
     if (!this.moveBullet) {
@@ -324,7 +321,7 @@ export class Enemy extends Actor {
     }
     if (br.morphCnt > 0) {
       return (
-        (this.bullets.addBullet(
+        (this.bullets.addTopMorphBullet(
           br.parser,
           runner,
           bx,
@@ -344,7 +341,7 @@ export class Enemy extends Actor {
       );
     }
     return (
-      (this.bullets.addBullet(
+      (this.bullets.addTopBullet(
         br.parser,
         runner,
         bx,
@@ -822,6 +819,9 @@ export class Enemy extends Actor {
   }
 
   public override draw(): void {
+    // Reset retro blur parameters per enemy draw to avoid inheriting stale values
+    // from previously drawn bullets/effects in earlier frames.
+    // P47Screen.setRetroParam(1, this.type.retroSize);
     let ap = 1;
     if (this.appCnt > 0) {
       P47Screen.setRetroZ(this.z);
