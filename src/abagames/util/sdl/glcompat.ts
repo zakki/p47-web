@@ -57,6 +57,7 @@ export class GLCompat {
   private drawVerticesBuffer = new Float32Array(0);
   private drawTexCoordsBuffer = new Float32Array(0);
   private drawColorsBuffer = new Float32Array(0);
+  private matrixMulScratch = new Float32Array(16);
   private activeRenderTarget: GLCompatRenderTarget | null = null;
 
   public static create(canvas: HTMLCanvasElement): GLCompat {
@@ -185,11 +186,15 @@ export class GLCompat {
   }
 
   public translateXYZ(x: number, y: number, z = 0): void {
-    this.mulCurrentMatrix(mat4Translation(x, y, z));
+    const m = this.getCurrentMatrix();
+    mat4TranslateInPlace(m, x, y, z);
+    this.mvpDirty = true;
   }
 
   public scaleXYZ(x: number, y: number, z = 1): void {
-    this.mulCurrentMatrix(mat4Scaling(x, y, z));
+    const m = this.getCurrentMatrix();
+    mat4ScaleInPlace(m, x, y, z);
+    this.mvpDirty = true;
   }
 
   public rotateDeg(angleDeg: number, x = 0, y = 0, z = 1): void {
@@ -854,12 +859,14 @@ void main() {
 
   private mulCurrentMatrix(m: Float32Array): void {
     const current = this.getCurrentMatrix();
-    this.setCurrentMatrix(mat4Mul(current, m));
+    mat4MulInto(this.matrixMulScratch, current, m);
+    current.set(this.matrixMulScratch);
+    this.mvpDirty = true;
   }
 
   private getCurrentMvp(): Float32Array {
     if (this.mvpDirty) {
-      this.mvp = mat4Mul(this.projection, this.modelView);
+      mat4MulInto(this.mvp, this.projection, this.modelView);
       this.mvpDirty = false;
     }
     return this.mvp;
@@ -885,8 +892,13 @@ function mat4Clone(m: Float32Array): Float32Array {
 }
 
 function mat4Mul(a: Float32Array, b: Float32Array): Float32Array {
-  // OpenGL-style column-major matrix multiplication: out = a * b
   const out = new Float32Array(16);
+  mat4MulInto(out, a, b);
+  return out;
+}
+
+function mat4MulInto(out: Float32Array, a: Float32Array, b: Float32Array): void {
+  // OpenGL-style column-major matrix multiplication: out = a * b
   for (let c = 0; c < 4; c++) {
     const b0 = b[c * 4];
     const b1 = b[c * 4 + 1];
@@ -897,7 +909,28 @@ function mat4Mul(a: Float32Array, b: Float32Array): Float32Array {
     out[c * 4 + 2] = a[2] * b0 + a[6] * b1 + a[10] * b2 + a[14] * b3;
     out[c * 4 + 3] = a[3] * b0 + a[7] * b1 + a[11] * b2 + a[15] * b3;
   }
-  return out;
+}
+
+function mat4TranslateInPlace(m: Float32Array, x: number, y: number, z: number): void {
+  m[12] += m[0] * x + m[4] * y + m[8] * z;
+  m[13] += m[1] * x + m[5] * y + m[9] * z;
+  m[14] += m[2] * x + m[6] * y + m[10] * z;
+  m[15] += m[3] * x + m[7] * y + m[11] * z;
+}
+
+function mat4ScaleInPlace(m: Float32Array, x: number, y: number, z: number): void {
+  m[0] *= x;
+  m[1] *= x;
+  m[2] *= x;
+  m[3] *= x;
+  m[4] *= y;
+  m[5] *= y;
+  m[6] *= y;
+  m[7] *= y;
+  m[8] *= z;
+  m[9] *= z;
+  m[10] *= z;
+  m[11] *= z;
 }
 
 function mat4Translation(x: number, y: number, z: number): Float32Array {
