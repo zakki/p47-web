@@ -98,9 +98,11 @@ export class P47Screen extends Screen3D {
       Screen3D.glEnd();
       return;
     }
-    Screen3D.glBegin(Screen3D.GL_QUADS);
-    P47Screen.emitRetroSegmentQuads(x1, y1, x2, y2);
-    Screen3D.glEnd();
+    const vertices: number[] = [];
+    P47Screen.emitRetroSegmentQuads(vertices, x1, y1, x2, y2);
+    if (vertices.length > 0) {
+      Screen3D.glDrawArrays(Screen3D.GL_QUADS, vertices, []);
+    }
   }
 
   public static drawLineLoopRetro(points: ReadonlyArray<RetroPoint>, offsetX = 0, offsetY = 0): void {
@@ -117,7 +119,7 @@ export class P47Screen extends Screen3D {
       Screen3D.glEnd();
       return;
     }
-    Screen3D.glBegin(Screen3D.GL_QUADS);
+    const vertices: number[] = [];
     let ni = 1;
     for (let i = 0; i < points.length; i++, ni++) {
       if (ni >= points.length) {
@@ -125,9 +127,11 @@ export class P47Screen extends Screen3D {
       }
       const p1 = points[i];
       const p2 = points[ni];
-      P47Screen.emitRetroSegmentQuads(offsetX + p1.x, offsetY + p1.y, offsetX + p2.x, offsetY + p2.y);
+      P47Screen.emitRetroSegmentQuads(vertices, offsetX + p1.x, offsetY + p1.y, offsetX + p2.x, offsetY + p2.y);
     }
-    Screen3D.glEnd();
+    if (vertices.length > 0) {
+      Screen3D.glDrawArrays(Screen3D.GL_QUADS, vertices, []);
+    }
   }
 
   private static setRetroDrawColor(): void {
@@ -145,7 +149,7 @@ export class P47Screen extends Screen3D {
     Screen3D.setColor(r, g, b, a);
   }
 
-  private static emitRetroSegmentQuads(x1: number, y1: number, x2: number, y2: number): void {
+  private static emitRetroSegmentQuads(outVertices: number[], x1: number, y1: number, x2: number, y2: number): void {
     const ds = P47Screen.retroSize * P47Screen.retro;
     if (ds <= 0) {
       return;
@@ -171,10 +175,20 @@ export class P47Screen extends Screen3D {
           x -= ds;
           xos += ds;
         }
-        Screen3D.glVertex3f(x - ds2, y - ds2, P47Screen.retroZ);
-        Screen3D.glVertex3f(x + ds2, y - ds2, P47Screen.retroZ);
-        Screen3D.glVertex3f(x + ds2, y + ds2, P47Screen.retroZ);
-        Screen3D.glVertex3f(x - ds2, y + ds2, P47Screen.retroZ);
+        outVertices.push(
+          x - ds2,
+          y - ds2,
+          P47Screen.retroZ,
+          x + ds2,
+          y - ds2,
+          P47Screen.retroZ,
+          x + ds2,
+          y + ds2,
+          P47Screen.retroZ,
+          x - ds2,
+          y + ds2,
+          P47Screen.retroZ,
+        );
       }
       return;
     }
@@ -195,10 +209,20 @@ export class P47Screen extends Screen3D {
         y -= ds;
         yos += ds;
       }
-      Screen3D.glVertex3f(x - ds2, y - ds2, P47Screen.retroZ);
-      Screen3D.glVertex3f(x + ds2, y - ds2, P47Screen.retroZ);
-      Screen3D.glVertex3f(x + ds2, y + ds2, P47Screen.retroZ);
-      Screen3D.glVertex3f(x - ds2, y + ds2, P47Screen.retroZ);
+      outVertices.push(
+        x - ds2,
+        y - ds2,
+        P47Screen.retroZ,
+        x + ds2,
+        y - ds2,
+        P47Screen.retroZ,
+        x + ds2,
+        y + ds2,
+        P47Screen.retroZ,
+        x - ds2,
+        y + ds2,
+        P47Screen.retroZ,
+      );
     }
   }
 

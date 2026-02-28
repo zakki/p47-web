@@ -572,6 +572,9 @@ void main() {
     texCoords: Float32Array;
     colors: Float32Array;
   } | null {
+    if (mode === "quads") {
+      return this.createPackedQuadDrawCall(vertices, colors);
+    }
     const vertexCount = Math.floor(vertices.length / 3);
     if (vertexCount <= 0) return null;
     this.ensureDrawBuffers(vertexCount);
@@ -638,6 +641,60 @@ void main() {
       default:
         return null;
     }
+  }
+
+  private createPackedQuadDrawCall(
+    vertices: number[],
+    colors: number[],
+  ): {
+    mode: number;
+    count: number;
+    vertices: Float32Array;
+    texCoords: Float32Array;
+    colors: Float32Array;
+  } | null {
+    const rawCount = Math.floor(vertices.length / 3);
+    const quadCount = Math.floor(rawCount / 4);
+    const triCount = quadCount * 6;
+    if (triCount <= 0) return null;
+    this.ensureDrawBuffers(triCount);
+    const hasPerVertexColor = colors.length >= rawCount * 4;
+    const triPattern = [0, 1, 2, 0, 2, 3];
+    let vPtr = 0;
+    let tPtr = 0;
+    let cPtr = 0;
+    for (let q = 0; q < quadCount; q++) {
+      const base = q * 4;
+      for (let i = 0; i < 6; i++) {
+        const idx = base + triPattern[i];
+        const vIdx = idx * 3;
+        this.drawVerticesBuffer[vPtr++] = vertices[vIdx];
+        this.drawVerticesBuffer[vPtr++] = vertices[vIdx + 1];
+        this.drawVerticesBuffer[vPtr++] = vertices[vIdx + 2];
+        this.drawVerticesBuffer[vPtr++] = 1;
+        this.drawTexCoordsBuffer[tPtr++] = 0;
+        this.drawTexCoordsBuffer[tPtr++] = 0;
+        if (hasPerVertexColor) {
+          const cIdx = idx * 4;
+          this.drawColorsBuffer[cPtr++] = colors[cIdx];
+          this.drawColorsBuffer[cPtr++] = colors[cIdx + 1];
+          this.drawColorsBuffer[cPtr++] = colors[cIdx + 2];
+          this.drawColorsBuffer[cPtr++] = colors[cIdx + 3];
+        } else {
+          this.drawColorsBuffer[cPtr++] = this.drawColor[0];
+          this.drawColorsBuffer[cPtr++] = this.drawColor[1];
+          this.drawColorsBuffer[cPtr++] = this.drawColor[2];
+          this.drawColorsBuffer[cPtr++] = this.drawColor[3];
+        }
+      }
+    }
+    return {
+      mode: this.gl.TRIANGLES,
+      count: triCount,
+      vertices: this.drawVerticesBuffer.subarray(0, triCount * 4),
+      texCoords: this.drawTexCoordsBuffer.subarray(0, triCount * 2),
+      colors: this.drawColorsBuffer.subarray(0, triCount * 4),
+    };
   }
 
   private applyBlendMode(): void {
