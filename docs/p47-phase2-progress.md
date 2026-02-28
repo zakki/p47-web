@@ -166,3 +166,18 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### LuminousActor.d -> luminousactor.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `Actor` 継承の抽象クラス定義
+  - `drawLuminous()` 抽象メソッド契約
+  - クラス責務（発光描画インターフェースのみ）
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
