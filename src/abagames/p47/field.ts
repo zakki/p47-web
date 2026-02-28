@@ -1,4 +1,4 @@
-import { DisplayList } from "../util/sdl/displaylist";
+import type { GLCompatStaticMesh } from "../util/sdl/glcompat";
 import { Screen3D } from "../util/sdl/screen3d";
 import { Vector } from "../util/vector";
 import { P47GameManager } from "./gamemanager";
@@ -11,7 +11,8 @@ export class Field {
   public aimZ = 10;
   public aimSpeed = 0.1;
 
-  private static displayList: DisplayList | null = null;
+  private static ringMeshes: GLCompatStaticMesh[] = [];
+  private static meshColor: [number, number, number, number] | null = null;
 
   private static readonly RING_NUM = 16;
   private static readonly RING_ANGLE_INT = 10;
@@ -109,7 +110,7 @@ export class Field {
   }
 
   public draw(): void {
-    Screen3D.setColor(this.r, this.g, this.b, 0.7);
+    Field.ensureRingMeshes(this.r, this.g, this.b, 0.7);
     let d = (-Field.RING_NUM * Field.RING_ANGLE_INT) / 2 + this.roll;
     for (let i = 0; i < Field.RING_NUM; i++) {
       for (let j = 1; j < 8; j++) {
@@ -121,7 +122,11 @@ export class Field {
         Screen3D.glRotatef(yawSin * this.yawYBase, 0, 1, 0);
         Screen3D.glRotatef(yawSin * this.yawZBase, 0, 0, 1);
         Screen3D.glScalef(1, 1, sc);
-        Field.displayList?.call(0);
+        if (Field.ringMeshes.length > 0) {
+          Field.drawRingMeshes();
+        } else {
+          Field.drawRingFallback(this.r, this.g, this.b, 0.7);
+        }
         Screen3D.glPopMatrix();
       }
       d += Field.RING_ANGLE_INT;
@@ -132,58 +137,99 @@ export class Field {
     return p.x < -this.size.x + space || p.x > this.size.x - space || p.y < -this.size.y + space || p.y > this.size.y - space;
   }
 
-  private static writeOneRing(): void {
-    Screen3D.glBegin(Screen3D.GL_LINE_STRIP);
+  private static buildRingElementVertices0(): number[] {
+    const vertices: number[] = [];
     for (let i = 0; i <= Field.RING_POS_NUM / 2 - 2; i++) {
-      Screen3D.glVertex3f(Field.ringPos[i].x, Field.RING_SIZE, Field.ringPos[i].y);
+      vertices.push(Field.ringPos[i].x, Field.RING_SIZE, Field.ringPos[i].y);
     }
     for (let i = Field.RING_POS_NUM / 2 - 2; i >= 0; i--) {
-      Screen3D.glVertex3f(Field.ringPos[i].x, -Field.RING_SIZE, Field.ringPos[i].y);
+      vertices.push(Field.ringPos[i].x, -Field.RING_SIZE, Field.ringPos[i].y);
     }
-    Screen3D.glVertex3f(Field.ringPos[0].x, Field.RING_SIZE, Field.ringPos[0].y);
-    Screen3D.glEnd();
+    vertices.push(Field.ringPos[0].x, Field.RING_SIZE, Field.ringPos[0].y);
+    return vertices;
+  }
 
-    Screen3D.glBegin(Screen3D.GL_LINE_STRIP);
-    Screen3D.glVertex3f(
-      Field.ringPos[Field.RING_POS_NUM / 2 - 1].x,
-      Field.RING_SIZE,
-      Field.ringPos[Field.RING_POS_NUM / 2 - 1].y,
-    );
-    Screen3D.glVertex3f(
-      Field.ringPos[Field.RING_POS_NUM / 2].x,
-      Field.RING_SIZE,
-      Field.ringPos[Field.RING_POS_NUM / 2].y,
-    );
-    Screen3D.glVertex3f(
-      Field.ringPos[Field.RING_POS_NUM / 2].x,
-      -Field.RING_SIZE,
-      Field.ringPos[Field.RING_POS_NUM / 2].y,
-    );
-    Screen3D.glVertex3f(
-      Field.ringPos[Field.RING_POS_NUM / 2 - 1].x,
-      -Field.RING_SIZE,
-      Field.ringPos[Field.RING_POS_NUM / 2 - 1].y,
-    );
-    Screen3D.glVertex3f(
-      Field.ringPos[Field.RING_POS_NUM / 2 - 1].x,
-      Field.RING_SIZE,
-      Field.ringPos[Field.RING_POS_NUM / 2 - 1].y,
-    );
-    Screen3D.glEnd();
+  private static buildRingElementVertices1(): number[] {
+    const vertices: number[] = [];
+    vertices.push(Field.ringPos[Field.RING_POS_NUM / 2 - 1].x, Field.RING_SIZE, Field.ringPos[Field.RING_POS_NUM / 2 - 1].y);
+    vertices.push(Field.ringPos[Field.RING_POS_NUM / 2].x, Field.RING_SIZE, Field.ringPos[Field.RING_POS_NUM / 2].y);
+    vertices.push(Field.ringPos[Field.RING_POS_NUM / 2].x, -Field.RING_SIZE, Field.ringPos[Field.RING_POS_NUM / 2].y);
+    vertices.push(Field.ringPos[Field.RING_POS_NUM / 2 - 1].x, -Field.RING_SIZE, Field.ringPos[Field.RING_POS_NUM / 2 - 1].y);
+    vertices.push(Field.ringPos[Field.RING_POS_NUM / 2 - 1].x, Field.RING_SIZE, Field.ringPos[Field.RING_POS_NUM / 2 - 1].y);
+    return vertices;
+  }
 
-    Screen3D.glBegin(Screen3D.GL_LINE_STRIP);
+  private static buildRingElementVertices2(): number[] {
+    const vertices: number[] = [];
     for (let i = Field.RING_POS_NUM / 2 + 1; i <= Field.RING_POS_NUM - 1; i++) {
-      Screen3D.glVertex3f(Field.ringPos[i].x, Field.RING_SIZE, Field.ringPos[i].y);
+      vertices.push(Field.ringPos[i].x, Field.RING_SIZE, Field.ringPos[i].y);
     }
     for (let i = Field.RING_POS_NUM - 1; i >= Field.RING_POS_NUM / 2 + 1; i--) {
-      Screen3D.glVertex3f(Field.ringPos[i].x, -Field.RING_SIZE, Field.ringPos[i].y);
+      vertices.push(Field.ringPos[i].x, -Field.RING_SIZE, Field.ringPos[i].y);
     }
-    Screen3D.glVertex3f(
-      Field.ringPos[Field.RING_POS_NUM / 2 + 1].x,
-      Field.RING_SIZE,
-      Field.ringPos[Field.RING_POS_NUM / 2 + 1].y,
-    );
-    Screen3D.glEnd();
+    vertices.push(Field.ringPos[Field.RING_POS_NUM / 2 + 1].x, Field.RING_SIZE, Field.ringPos[Field.RING_POS_NUM / 2 + 1].y);
+    return vertices;
+  }
+
+  private static createColors(vertexCount: number, r: number, g: number, b: number, a: number): number[] {
+    const colors: number[] = [];
+    for (let i = 0; i < vertexCount; i++) {
+      colors.push(r, g, b, a);
+    }
+    return colors;
+  }
+
+  private static ensureRingMeshes(r: number, g: number, b: number, a: number): void {
+    if (Field.meshColor && Field.meshColor[0] === r && Field.meshColor[1] === g && Field.meshColor[2] === b && Field.meshColor[3] === a) {
+      return;
+    }
+    Field.clearRingMeshes();
+    const verticesList = [
+      Field.buildRingElementVertices0(),
+      Field.buildRingElementVertices1(),
+      Field.buildRingElementVertices2(),
+    ];
+    for (const vertices of verticesList) {
+      const mesh = Screen3D.glCreateStaticMesh(
+        Screen3D.GL_LINE_STRIP,
+        vertices,
+        Field.createColors(vertices.length / 3, r, g, b, a),
+      );
+      if (!mesh) {
+        Field.clearRingMeshes();
+        return;
+      }
+      Field.ringMeshes.push(mesh);
+    }
+    Field.meshColor = [r, g, b, a];
+  }
+
+  private static drawRingMeshes(): void {
+    if (Field.ringMeshes.length <= 0) {
+      return;
+    }
+    for (const mesh of Field.ringMeshes) {
+      Screen3D.glDrawStaticMesh(mesh);
+    }
+  }
+
+  private static drawRingFallback(r: number, g: number, b: number, a: number): void {
+    const verticesList = [
+      Field.buildRingElementVertices0(),
+      Field.buildRingElementVertices1(),
+      Field.buildRingElementVertices2(),
+    ];
+    for (const vertices of verticesList) {
+      Screen3D.glDrawArrays(Screen3D.GL_LINE_STRIP, vertices, Field.createColors(vertices.length / 3, r, g, b, a));
+    }
+  }
+
+  private static clearRingMeshes(): void {
+    for (const mesh of Field.ringMeshes) {
+      Screen3D.glDeleteStaticMesh(mesh);
+    }
+    Field.ringMeshes = [];
+    Field.meshColor = null;
   }
 
   public static createDisplayLists(): void {
@@ -193,15 +239,10 @@ export class Field {
       Field.ringPos[i].x = Math.sin(d) * Field.RING_RADIUS;
       Field.ringPos[i].y = Math.cos(d) * Field.RING_RADIUS;
     }
-    const list = new DisplayList(1);
-    list.beginNewList();
-    Field.writeOneRing();
-    list.endNewList();
-    Field.displayList = list;
+    Field.clearRingMeshes();
   }
 
   public static deleteDisplayLists(): void {
-    Field.displayList?.close();
-    Field.displayList = null;
+    Field.clearRingMeshes();
   }
 }
