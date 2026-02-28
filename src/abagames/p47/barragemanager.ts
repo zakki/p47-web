@@ -113,5 +113,4 @@ export class BarrageManager {
 
 // PORT_NOTE[D:BarrageManager.d#loadBulletMLs]:
 // D版は同期的に BulletMLParserTinyXML を構築するが、Web版は fetch/DOMParser 経由で非同期ロードが必要。
-// 影響: 呼び出し側は loadBulletMLs() の Promise 完了を待つ必要がある。
-// TODO: GameManager 初期化フローを async 化し、D版同等の「開始前ロード完了」を保証する。
+// Web版は GameManager 側でロード完了待機を行ってからタイトル開始する。

@@ -1,4 +1,5 @@
 import { Actor, ActorPool } from "../util/actor";
+import { Logger } from "../util/logger";
 import { Rand } from "../util/rand";
 import { GameManager as BaseGameManager } from "../util/sdl/gamemanager";
 import { Music } from "../util/sdl/sound";
@@ -135,6 +136,9 @@ export class P47GameManager extends BaseGameManager {
   private btnPrsd = true;
   private screenShakeCnt = 0;
   private screenShakeIntense = 0;
+  private waitingForBarrageAssets = true;
+  private barrageAssetsReady = false;
+  private barrageAssetsFailed = false;
 
   public override init(): void {
     this.pad = this.input as Pad;
@@ -195,12 +199,16 @@ export class P47GameManager extends BaseGameManager {
 
     this.barrageManager = new BarrageManager();
     EnemyType.init(this.barrageManager);
-    void this.barrageManager.loadBulletMLs().catch(() => {
-      // PORT_NOTE[D:P47GameManager.d#init.loadBulletMLs]:
-      // D版は同期ロードだが、Web版のBulletMLロードは非同期。
-      // 影響: 起動直後に弾幕資産が未ロードのフレームが発生しうる。
-      // TODO: MainLoop/GameManager初期化をasync化してロード完了待ちにする。
-    });
+    void this.barrageManager
+      .loadBulletMLs()
+      .then(() => {
+        this.onBarrageAssetsReady(false);
+      })
+      .catch((e: unknown) => {
+        const err = e instanceof Error ? e : new Error(String(e));
+        Logger.error(err);
+        this.onBarrageAssetsReady(true);
+      });
 
     this.stageManager = new StageManager() as StageManagerLike;
     this.stageManager.init(this, this.barrageManager, this.field);
@@ -213,7 +221,15 @@ export class P47GameManager extends BaseGameManager {
   }
 
   public override start(): void {
-    this.startTitle();
+    if (this.barrageAssetsReady) {
+      this.waitingForBarrageAssets = false;
+      this.startTitle();
+      return;
+    }
+    this.waitingForBarrageAssets = true;
+    this.state = P47GameManager.TITLE;
+    this.cnt = 0;
+    Music.haltMusic();
   }
 
   public override close(): void {
@@ -439,6 +455,10 @@ export class P47GameManager extends BaseGameManager {
       this.mainLoop.breakLoop();
       return;
     }
+    if (this.waitingForBarrageAssets) {
+      this.cnt++;
+      return;
+    }
     switch (this.state) {
       case P47GameManager.IN_GAME:
         this.inGameMove();
@@ -472,6 +492,12 @@ export class P47GameManager extends BaseGameManager {
       if (w > 150 && h > 100) {
         this.screen.resized(w, h);
       }
+    }
+    if (this.waitingForBarrageAssets) {
+      this.screen.viewOrthoFixed?.();
+      this.drawLoadingStatus();
+      this.screen.viewPerspective?.();
+      return;
     }
 
     this.screen.startRenderToTexture?.();
@@ -532,6 +558,16 @@ export class P47GameManager extends BaseGameManager {
         break;
     }
     this.screen.viewPerspective?.();
+  }
+
+  private onBarrageAssetsReady(failed: boolean): void {
+    this.barrageAssetsReady = true;
+    this.barrageAssetsFailed = failed;
+    if (!this.waitingForBarrageAssets) {
+      return;
+    }
+    this.waitingForBarrageAssets = false;
+    this.startTitle();
   }
 
   private initShipState(): void {
@@ -875,6 +911,16 @@ export class P47GameManager extends BaseGameManager {
     this.drawSideInfo();
     if (this.pauseCnt % 60 < 30) {
       LetterRender.drawString("PAUSE", 280, 220, 12, LetterRender.TO_RIGHT);
+    }
+  }
+
+  private drawLoadingStatus(): void {
+    this.drawSideBoards();
+    LetterRender.drawString("LOADING BULLETML", 206, 218, 10, LetterRender.TO_RIGHT);
+    if (this.barrageAssetsFailed) {
+      LetterRender.changeColor(LetterRender.RED);
+      LetterRender.drawString("LOAD FAILED", 252, 252, 10, LetterRender.TO_RIGHT);
+      LetterRender.changeColor(LetterRender.WHITE);
     }
   }
 

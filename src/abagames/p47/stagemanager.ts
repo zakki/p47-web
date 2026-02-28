@@ -310,10 +310,7 @@ export class StageManager {
   private getParser(mt: number): BulletMLParserAsset | null {
     const pn = this.barrageManager.parserNum[mt] ?? 0;
     if (pn <= 0) {
-      // PORT_NOTE[D:StageManager.d#set*Appearance.moveParser]:
-      // D版は弾幕XMLを同期ロードするため parserNum==0 が発生しないが、Web版は非同期ロード中に 0 になりうる。
-      // 影響: ロード完了前フレームで敵が非出現になる可能性がある。
-      // TODO: GameManager初期化をasync化して、D版同様にロード完了後開始へ揃える。
+      // parser が 0 件のときは XML 欠落やロード失敗が疑われるため安全に出現を抑止する。
       return null;
     }
     return this.barrageManager.parser[mt][this.rand.nextInt(pn)] ?? null;
