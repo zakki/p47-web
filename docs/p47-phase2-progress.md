@@ -30,3 +30,21 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### BulletActor.d -> bulletactor.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `init`/`resetTotalBulletsSpeed`/`set`/`setSimple`/`setInvisible`/`setTop`/`remove`/`toRetro` の状態遷移
+  - `move` の更新順序（`ppos` 更新、runner 進行、`rtCnt` 遷移、`BULLET_DISAPPEAR_CNT`、移動式、被弾判定、field 判定）
+  - `draw` と `drawRetro` の回転規則・レトロ描画分岐・色/形状テーブル
+  - `createDisplayLists`/`deleteDisplayLists` の形状生成ロジック（`DisplayList` 利用で D 版 display list を再現）
+- 残差:
+  - `P47Bullet`/`MorphBullet`/`BulletActorPool` 側が未移植のため、`BulletActor` 内で互換ラッパを置いた暫定接続
+  - `Field.checkHit` 未実装環境では D 式の境界判定を `BulletActor` 側で代替
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/bulletactor.ts:295 - rewind 時の BulletML callback 再登録未完
+  - p47-web/src/abagames/p47/bulletactor.ts:343 - `Ship.destroyed()` 未実装時の被弾副作用欠落
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
