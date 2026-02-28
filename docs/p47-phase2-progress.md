@@ -397,3 +397,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### StageManager.d -> stagemanager.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - 出現点/出現パターン/出現シーケンス/敵種別の定数と `EnemyAppearance` 状態
+  - `init` / `setRank` / `createEnemyData` / `set*Appearance` / `createSectionData` / `createStage` / `gotoNextSection` / `move` の制御フロー
+  - セクション進行、ボス出現、`middleRushSection`、`field.aimZ/aimSpeed`、`parsec` 更新
+  - 敵出現位置計算（TOP/SIDE/BACK）、`ONE_SIDE/ALTERNATE/BOTH_SIDES` 切替、group/interval 再設定
+  - `SoundManager.playBgm` と `Music.fadeMusic` の発火タイミング
+- 残差:
+  - D版は弾幕資産同期ロード前提だが、Web版は `BarrageManager` が非同期ロードのため、ロード完了前に `moveParser` が null になりうる
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/stagemanager.ts:311 - 非同期 BulletML ロード差分による `parserNum==0` ガード
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
