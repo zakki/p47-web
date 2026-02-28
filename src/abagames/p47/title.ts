@@ -53,6 +53,13 @@ export class Title {
     this.titleTexture = null;
   }
 
+  public async waitForAssets(): Promise<boolean> {
+    if (!this.titleTexture) {
+      return true;
+    }
+    return this.titleTexture.waitForLoad();
+  }
+
   public start(): void {
     for (let k = 0; k < P47PrefManager.MODE_NUM; k++) {
       for (let i = 0; i < P47PrefManager.DIFFICULTY_NUM; i++) {
@@ -164,10 +171,7 @@ export class Title {
 
   private drawTitleBoard(): void {
     if (!this.titleTexture?.isLoaded) {
-      // PORT_NOTE[D:Title.d#drawTitleBoard]:
-      // D版は同期テクスチャロード前提だが、Web版 Texture は非同期ロード。
-      // 影響: タイトル画像の読み込み完了前フレームでは看板が表示されない。
-      // TODO: アセットプリロード完了待ちを導入して初回描画タイミングを揃える。
+      // ロード失敗時は看板のみ非表示で継続する。
       return;
     }
     Screen3D.glEnable(Screen3D.GL_TEXTURE_2D);

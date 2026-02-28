@@ -50,6 +50,7 @@ type TitleLike = Title & {
   setStatus?: () => void;
   changeMode?: () => void;
   getStartParsec?: (difficulty: number, parsecSlot: number) => number;
+  waitForAssets?: () => Promise<boolean>;
 };
 
 type ScreenWithLuminousPass = P47Screen & {
@@ -139,6 +140,8 @@ export class P47GameManager extends BaseGameManager {
   private waitingForBarrageAssets = true;
   private barrageAssetsReady = false;
   private barrageAssetsFailed = false;
+  private titleAssetsReady = false;
+  private titleAssetsFailed = false;
 
   public override init(): void {
     this.pad = this.input as Pad;
@@ -215,13 +218,23 @@ export class P47GameManager extends BaseGameManager {
 
     this.title = new Title() as TitleLike;
     this.title.init(this.pad, this, this.prefManager, this.field);
+    void this.title
+      .waitForAssets?.()
+      .then((ok) => {
+        this.onTitleAssetsReady(ok === false);
+      })
+      .catch((e: unknown) => {
+        const err = e instanceof Error ? e : new Error(String(e));
+        Logger.error(err);
+        this.onTitleAssetsReady(true);
+      });
 
     this.interval = this.mainLoop.INTERVAL_BASE;
     SoundManager.init(this);
   }
 
   public override start(): void {
-    if (this.barrageAssetsReady) {
+    if (this.assetsReady()) {
       this.waitingForBarrageAssets = false;
       this.startTitle();
       return;
@@ -563,11 +576,28 @@ export class P47GameManager extends BaseGameManager {
   private onBarrageAssetsReady(failed: boolean): void {
     this.barrageAssetsReady = true;
     this.barrageAssetsFailed = failed;
+    this.tryLeaveAssetLoading();
+  }
+
+  private onTitleAssetsReady(failed: boolean): void {
+    this.titleAssetsReady = true;
+    this.titleAssetsFailed = failed;
+    this.tryLeaveAssetLoading();
+  }
+
+  private tryLeaveAssetLoading(): void {
+    if (!this.assetsReady()) {
+      return;
+    }
     if (!this.waitingForBarrageAssets) {
       return;
     }
     this.waitingForBarrageAssets = false;
     this.startTitle();
+  }
+
+  private assetsReady(): boolean {
+    return this.barrageAssetsReady && this.titleAssetsReady;
   }
 
   private initShipState(): void {
@@ -916,10 +946,12 @@ export class P47GameManager extends BaseGameManager {
 
   private drawLoadingStatus(): void {
     this.drawSideBoards();
-    LetterRender.drawString("LOADING BULLETML", 206, 218, 10, LetterRender.TO_RIGHT);
-    if (this.barrageAssetsFailed) {
+    LetterRender.drawString("LOADING ASSETS", 234, 192, 10, LetterRender.TO_RIGHT);
+    LetterRender.drawString(this.barrageAssetsReady ? "BULLETML: OK" : "BULLETML: ...", 230, 224, 8, LetterRender.TO_RIGHT);
+    LetterRender.drawString(this.titleAssetsReady ? "TITLE BMP: OK" : "TITLE BMP: ...", 230, 250, 8, LetterRender.TO_RIGHT);
+    if (this.barrageAssetsFailed || this.titleAssetsFailed) {
       LetterRender.changeColor(LetterRender.RED);
-      LetterRender.drawString("LOAD FAILED", 252, 252, 10, LetterRender.TO_RIGHT);
+      LetterRender.drawString("LOAD FAILED", 252, 286, 10, LetterRender.TO_RIGHT);
       LetterRender.changeColor(LetterRender.WHITE);
     }
   }
