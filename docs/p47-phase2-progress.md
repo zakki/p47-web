@@ -228,3 +228,19 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### P47Boot.d -> boot.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `boot` の初期化順（`P47Screen`/`Pad`/`P47GameManager`/`P47PrefManager`/`MainLoop`）と `openJoystick` 例外握りつぶし
+  - `parseArgs` の走査開始位置（`args[1]` から）と不正オプション時の `usage + Exception` 契約
+  - `-brightness` / `-luminous` / `-nosound` / `-window` / `-reverse` / `-lowres` / `-slowship` / `-nowait` / `-accframe` の反映先
+  - `usage` 表示文字列を D 版のオプション集合に整合
+- 残差:
+  - D版の `main` / `WinMain` エントリポイント分岐は Web 版の起動構成（`src/main.ts`）により対象外
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
