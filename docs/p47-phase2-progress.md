@@ -379,3 +379,21 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### SoundManager.d -> soundmanager.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - SE種別定数 (`SHOT`..`LASER`) と `BGM_NUM=4` / `SE_NUM=11`
+  - `bgmFileName` / `seFileName` / `seChannel` のテーブル内容
+  - `init(manager)` での `noSound` ガード、BGM/SEロード順、マネージャ参照保持
+  - `close` での BGM/SE 全解放処理
+  - `playBgm` / `playSe` の `noSound || state!=IN_GAME` ガードと再生
+  - `stopSe` の `noSound` ガードとチャンク停止
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
