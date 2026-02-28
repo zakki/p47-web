@@ -1,12 +1,11 @@
-import { DisplayList } from "../util/sdl/displaylist";
+import type { GLCompatStaticMesh } from "../util/sdl/glcompat";
 import { Screen3D } from "../util/sdl/screen3d";
-import { P47Screen } from "./screen";
 
 /**
  * Letters' renderer.
  */
 export class LetterRender {
-  public static displayList: DisplayList | null = null;
+  private static glyphs: GlyphMesh[] = [];
   public static colorIdx = 0;
 
   public static readonly WHITE = 0;
@@ -17,12 +16,13 @@ export class LetterRender {
   }
 
   private static drawLetter(n: number, x: number, y: number, s: number, d: number): void {
-    if (!LetterRender.displayList) return;
+    const glyph = LetterRender.glyphs[n + LetterRender.colorIdx];
+    if (!glyph) return;
     Screen3D.glPushMatrix();
     Screen3D.glTranslatef(x, y, 0);
     Screen3D.glScalef(s, s, s);
     Screen3D.glRotatef(d, 0, 0, 1);
-    LetterRender.displayList.call(n + LetterRender.colorIdx);
+    LetterRender.drawGlyphMesh(glyph);
     Screen3D.glPopMatrix();
   }
 
@@ -126,14 +126,11 @@ export class LetterRender {
     }
   }
 
-  private static drawBox(x: number, y: number, width: number, height: number, r: number, g: number, b: number): void {
-    Screen3D.setColor(r, g, b, 0.5);
-    P47Screen.drawBoxSolid(x - width, y - height, width * 2, height * 2);
-    Screen3D.setColor(r, g, b, 1);
-    P47Screen.drawBoxLine(x - width, y - height, width * 2, height * 2);
-  }
-
-  private static drawGlyph(idx: number, r: number, g: number, b: number): void {
+  private static buildGlyphMesh(idx: number, r: number, g: number, b: number): GlyphMesh {
+    const solidVertices: number[] = [];
+    const solidColors: number[] = [];
+    const lineVertices: number[] = [];
+    const lineColors: number[] = [];
     for (let i = 0; ; i++) {
       let deg = LetterRender.spData[idx][i][4] | 0;
       if (deg > 99990) break;
@@ -146,44 +143,86 @@ export class LetterRender {
       x = -x;
       deg %= 180;
       if (deg <= 45 || deg > 135) {
-        LetterRender.drawBox(x, y, size, length, r, g, b);
+        LetterRender.appendBoxGeometry(x, y, size, length, r, g, b, solidVertices, solidColors, lineVertices, lineColors);
       } else {
-        LetterRender.drawBox(x, y, length, size, r, g, b);
+        LetterRender.appendBoxGeometry(x, y, length, size, r, g, b, solidVertices, solidColors, lineVertices, lineColors);
       }
+    }
+    const solidMesh =
+      solidVertices.length > 0 ? Screen3D.glCreateStaticMesh(Screen3D.GL_QUADS, solidVertices, solidColors) : null;
+    const lineMesh = lineVertices.length > 0 ? Screen3D.glCreateStaticMesh(Screen3D.GL_LINES, lineVertices, lineColors) : null;
+    return {
+      solidVertices,
+      solidColors,
+      lineVertices,
+      lineColors,
+      solidMesh,
+      lineMesh,
+    };
+  }
+
+  private static appendBoxGeometry(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    r: number,
+    g: number,
+    b: number,
+    solidVertices: number[],
+    solidColors: number[],
+    lineVertices: number[],
+    lineColors: number[],
+  ): void {
+    const x1 = x - width;
+    const y1 = y - height;
+    const x2 = x + width;
+    const y2 = y + height;
+    solidVertices.push(x1, y1, 0, x2, y1, 0, x2, y2, 0, x1, y2, 0);
+    for (let i = 0; i < 4; i++) {
+      solidColors.push(r, g, b, 0.5);
+    }
+    lineVertices.push(x1, y1, 0, x2, y1, 0, x2, y1, 0, x2, y2, 0, x2, y2, 0, x1, y2, 0, x1, y2, 0, x1, y1, 0);
+    for (let i = 0; i < 8; i++) {
+      lineColors.push(r, g, b, 1);
+    }
+  }
+
+  private static drawGlyphMesh(glyph: GlyphMesh): void {
+    if (glyph.solidMesh && glyph.lineMesh) {
+      Screen3D.glDrawStaticMesh(glyph.solidMesh);
+      Screen3D.glDrawStaticMesh(glyph.lineMesh);
+      return;
+    }
+    if (glyph.solidVertices.length > 0) {
+      Screen3D.glDrawArrays(Screen3D.GL_QUADS, glyph.solidVertices, glyph.solidColors);
+    }
+    if (glyph.lineVertices.length > 0) {
+      Screen3D.glDrawArrays(Screen3D.GL_LINES, glyph.lineVertices, glyph.lineColors);
     }
   }
 
   private static readonly LETTER_NUM = 42;
 
   public static createDisplayLists(): void {
-    const list = new DisplayList(LetterRender.LETTER_NUM * 2);
-    let started = false;
-    let idx = 0;
+    LetterRender.deleteDisplayLists();
+    const glyphs: GlyphMesh[] = [];
     for (let i = 0; i < LetterRender.LETTER_NUM; i++) {
-      if (!started) {
-        list.beginNewList();
-        started = true;
-      } else {
-        list.nextNewList();
-      }
-      LetterRender.drawGlyph(i, 1, 1, 1);
-      idx++;
+      glyphs.push(LetterRender.buildGlyphMesh(i, 1, 1, 1));
     }
     for (let i = 0; i < LetterRender.LETTER_NUM; i++) {
-      list.nextNewList();
-      LetterRender.drawGlyph(i, 1, 0.7, 0.7);
-      idx++;
+      glyphs.push(LetterRender.buildGlyphMesh(i, 1, 0.7, 0.7));
     }
-    if (started && idx > 0) {
-      list.endNewList();
-    }
-    LetterRender.displayList = list;
+    LetterRender.glyphs = glyphs;
     LetterRender.colorIdx = 0;
   }
 
   public static deleteDisplayLists(): void {
-    LetterRender.displayList?.close();
-    LetterRender.displayList = null;
+    for (const glyph of LetterRender.glyphs) {
+      if (glyph.solidMesh) Screen3D.glDeleteStaticMesh(glyph.solidMesh);
+      if (glyph.lineMesh) Screen3D.glDeleteStaticMesh(glyph.lineMesh);
+    }
+    LetterRender.glyphs = [];
   }
 
   private static readonly spData: number[][][] = [
@@ -435,4 +474,13 @@ export class LetterRender {
       [0, 0, 0, 0, 99999],
     ],
   ];
+}
+
+interface GlyphMesh {
+  solidVertices: number[];
+  solidColors: number[];
+  lineVertices: number[];
+  lineColors: number[];
+  solidMesh: GLCompatStaticMesh | null;
+  lineMesh: GLCompatStaticMesh | null;
 }
