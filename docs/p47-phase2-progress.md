@@ -311,3 +311,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Particle.d -> particle.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `R/G/B` と `pos/ppos/vel/z/mz/pz/lumAlp/cnt` の状態変数を D 版同等で実装
+  - `init` で `Vector` を再初期化する手順と `ParticleInitializer` 契約
+  - `set` の位置オフセット、速度係数 `sb`、`mz`/寿命/発光アルファの乱数初期化
+  - `move` の更新順（寿命減算・消滅判定・`ppos/pz` 保持・位置更新・減衰）
+  - `draw` / `drawLuminous` の線分頂点出力と `lumAlp < 0.2` 早期 return
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
