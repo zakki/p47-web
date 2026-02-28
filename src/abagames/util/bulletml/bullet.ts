@@ -18,7 +18,9 @@ export type BulletMLRunner = {
   dispose?: () => void;
   close?: () => void;
 };
-export type BulletMLState = unknown;
+export type BulletMLState = {
+  createRunner: () => BulletMLRunner;
+};
 
 /**
  * Bullet controlled by BulletML.

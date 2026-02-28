@@ -5,7 +5,7 @@ import type { BulletMLRunner } from "../util/bulletml/bullet";
 import { Screen3D } from "../util/sdl/screen3d";
 import { Bonus } from "./bonus";
 import type { BulletActor } from "./bulletactor";
-import type { BulletActorPool } from "./bulletactorpool";
+import { BulletActorPool } from "./bulletactorpool";
 import { EnemyType } from "./enemytype";
 import { Field } from "./field";
 import { Lock } from "./lock";
@@ -920,17 +920,7 @@ export class Enemy extends Actor {
   }
 
   private registFunctions(runner: BulletMLRunner): void {
-    const poolClass = this.bullets.constructor as typeof BulletActorPool & {
-      registFunctions?: (r: BulletMLRunner) => void;
-    };
-    if (typeof poolClass.registFunctions === "function") {
-      poolClass.registFunctions(runner);
-      return;
-    }
-    // PORT_NOTE[D:Enemy.d#setBullet]:
-    // D版の BulletActorPool.registFunctions 呼び出しに対し、未移植環境では関数未定義の可能性がある。
-    // 影響: BulletML callback が未登録となり、発射弾が正しく更新されない可能性がある。
-    // TODO: BulletActorPool の faithful port 完了後、このフォールバック分岐を削除する。
+    BulletActorPool.registFunctions(runner);
   }
 
   private checkFieldHit(pos: Vector): boolean {

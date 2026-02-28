@@ -39,10 +39,6 @@ type P47BulletLike = Bullet & {
   morphCnt?: number;
 };
 
-type BulletStateWithRunner = {
-  createRunner: () => BulletMLRunner;
-};
-
 /**
  * Bullet actor pool that works as the BulletsManager.
  */
@@ -341,15 +337,7 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
   }
 
   private createRunnerFromState(state: BulletMLState): BulletMLRunner {
-    const stateLike = state as Partial<BulletStateWithRunner>;
-    if (typeof stateLike.createRunner === "function") {
-      return stateLike.createRunner();
-    }
-    // PORT_NOTE[D:BulletActorPool.d#addBullet(state,deg,speed)]:
-    // D版は BulletMLState から BulletMLRunner を常に生成できるが、TS版は BulletMLState 型が `unknown` で静的保証がない。
-    // 影響: 不正な state が渡るとここで例外となる。
-    // TODO: util/bulletml/bullet.ts の BulletMLState を実体型に寄せ、型レベルで createRunner() を保証する。
-    throw new Error("BulletActorPool.addBullet(state,...): state does not provide createRunner()");
+    return state.createRunner();
   }
 }
 

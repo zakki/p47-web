@@ -114,6 +114,5 @@ export class BarrageManager {
   }
 }
 
-// PORT_NOTE[D:BarrageManager.d#loadBulletMLs]:
-// D版は同期的に BulletMLParserTinyXML を構築するが、Web版は fetch/DOMParser 経由で非同期ロードが必要。
-// Web版は GameManager 側でロード完了待機を行ってからタイトル開始する。
+// Note: D版は同期的に BulletMLParserTinyXML を構築するが、Web版は非同期ロード。
+// Web版では GameManager 側でロード完了待機してからタイトル開始する。

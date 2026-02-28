@@ -291,14 +291,7 @@ export class BulletActor extends Actor {
     this.bullet.remove();
     if (!this.parser) return;
     const runner = this.parser.createRunner();
-    // PORT_NOTE[D:BulletActor.d#rewind]:
-    // D版の BulletActorPool.registFunctions 相当が未移植のため callback 再登録は未対応。
-    // 影響: 巻き戻し後の BulletML callback が未接続になる可能性がある。
-    // TODO: BulletActorPool 側の faithful port 時に runner callback を接続する。
-    const poolClass = BulletActorPool as unknown as {
-      registFunctions?: (runner: BulletMLRunner) => void;
-    };
-    poolClass.registFunctions?.(runner);
+    BulletActorPool.registFunctions(runner);
     this.bullet.setRunner(runner);
     this.bullet.resetMorph();
   }
@@ -339,14 +332,7 @@ export class BulletActor extends Actor {
     }
     const hd = sofsx * sofsx + sofsy * sofsy - (inab * inab) / inaa;
     if (hd >= 0 && hd <= BulletActor.SHIP_HIT_WIDTH) {
-      // PORT_NOTE[D:BulletActor.d#checkShipHit]:
-      // Ship.destroyed() の faithful 移植が未完で TS 側 API 契約が確定していない。
-      // 影響: Ship 側が未実装の状態では被弾副作用が発生しない。
-      // TODO: Ship.d 移植時に destroyed() を実装し、この呼び出しを型安全化する。
-      const destroyFn = (this.ship as Ship & { destroyed?: () => void }).destroyed;
-      if (typeof destroyFn === "function") {
-        destroyFn.call(this.ship);
-      }
+      this.ship.destroyed();
     }
   }
 
