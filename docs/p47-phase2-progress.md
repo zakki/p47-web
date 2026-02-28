@@ -149,3 +149,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Lock.d -> lock.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `SEARCH/SEARCHED/LOCKING/LOCKED/FIRED/HIT/CANCELED` の状態定数、`LENGTH`/`NO_COLLISION_CNT`/`SPEED`/`LOCK_CNT` の定数
+  - `init` / `reset` / `set` / `hit` / `move` / `draw` の制御フローと `LOCKED` からのフォールスルー挙動
+  - 敵追尾座標更新（`lockedPart` による本体/バッテリー切替）と `CANCELED` 遷移条件
+  - レーザー軌跡更新、場外時の再ロック/消滅分岐、`SoundManager.LOCK/LASER` 発火タイミング
+  - `LockInitializer` の依存注入構造（`ship/field/manager`）
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
