@@ -83,3 +83,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### EnemyType.d -> enemytype.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `Barrage` / `BatteryType` / `EnemyType` の状態変数・定数・初期化順序
+  - `setBarrageType` / `setBarrageRank` / `setBarrageRankSlow` / `setBarrageShape` の弾幕生成ロジック
+  - `setEnemyShapeAndWings` / `setBattery` の機体形状・翼・バッテリー配置計算
+  - `setSmallEnemyType` / `setMiddleEnemyType` / `setLargeEnemyType` / `setMiddleBossEnemyType` / `setLargeBossEnemyType` の敵種別構築分岐
+  - `clearIsExistList` と ID 採番 (`idCnt`) の静的管理
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
