@@ -182,11 +182,20 @@ export class BulletActorPool extends ActorPool<BulletActor> implements BulletsMa
   }
 
   public killMe(bullet: Bullet): void {
-    const actor = this.actor[bullet.id];
-    if (!actor || actor.bullet.id !== bullet.id) {
-      throw new Error("BulletActorPool.killMe: bullet id mismatch");
+    const byId = this.actor[bullet.id];
+    if (byId && byId.bullet.id === bullet.id) {
+      byId.remove();
+      return;
     }
-    actor.remove();
+    for (let i = 0; i < this.actor.length; i++) {
+      const ac = this.actor[i];
+      if (!ac.exists) continue;
+      const actorBullet = ac.bullet as unknown as Bullet;
+      if (actorBullet === bullet || actorBullet.id === bullet.id) {
+        ac.remove();
+        return;
+      }
+    }
   }
 
   public override clear(): void {

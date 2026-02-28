@@ -126,7 +126,7 @@ export class BulletActor extends Actor {
     ],
   ];
 
-  public bullet: P47BulletLike;
+  public bullet!: P47BulletLike;
 
   private field!: Field;
   private ship!: Ship;
@@ -142,7 +142,6 @@ export class BulletActor extends Actor {
 
   public constructor() {
     super();
-    this.bullet = this.createBullet(BulletActor.nextId++);
   }
 
   public static init(): void {
