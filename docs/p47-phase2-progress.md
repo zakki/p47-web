@@ -48,3 +48,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### BulletActorPool.d -> bulletactorpool.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `ActorPool` 継承 + `BulletsManager` 実装、および ctor 内 `Bullet.setBulletsManager(this)` / `BulletActor.init()` / `cnt=0`
+  - `addBullet` の D版オーバーロード群（simple/state/runner/parser/morph 付き parser）を TS で同等分岐として実装
+  - `move` の `super.move()` 後 `cnt++`、`getTurn`、`killMe` の id 整合チェック + `remove` 呼び出し
+  - `clear` を D版同様「存在中 actor に remove() をかける」実装へ変更
+  - `registFunctions` で BulletML callback を一括登録し、`getAimDirection` を `xReverse` 対応版へ差し替え
+- 残差:
+  - `BulletMLState` が TS 側で `unknown` 定義のため、`addBullet(state,...)` は `createRunner()` の実行時確認に依存
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/bulletactorpool.ts:339 - `BulletMLState` 型の静的保証不足による実行時チェック
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
