@@ -100,3 +100,18 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Field.d -> field.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `TYPE_NUM`/`RING_NUM`/`RING_ANGLE_INT`/`RING_POS_NUM`/`RING_DEG`/`RING_RADIUS`/`RING_SIZE` の定数と内部状態 (`roll`/`yaw`/`z`/`speed`/`yawYBase`/`yawZBase`)
+  - `init`/`setColor`/`move`/`setType`/`draw`/`checkHit` の制御フローと補間係数
+  - ring 形状の display list 生成・破棄 (`createDisplayLists`/`deleteDisplayLists`) と `writeOneRing` の頂点列
+- 残差:
+  - `P47GameManager` の `ROLL`/`LOCK` 定数が TS 側で未定義のため、`setColor` は `0/1` フォールバックで互換維持
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
