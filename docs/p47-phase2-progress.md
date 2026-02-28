@@ -260,6 +260,23 @@
   - build: pass
   - 手動確認: 未実施
 
+### Ship.d -> ship.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - 状態変数・定数（`restart/cnt/BASE_SPEED/.../FIELD_SPACE`）と `init/start/setSpeedRate` の初期化順
+  - `destroyed` の無敵時間ガード、SE、`shipDestroyed` 呼び出し、破片/粒子生成、`RESTART_CNT` 再始動
+  - `move` の更新順（無敵復帰、`PAD_BUTTON2`時の `ROLL/LOCK` チャージ分岐、移動・クランプ、射撃分岐、`Bullet.target` 更新）
+  - `draw` の無敵点滅判定と機体/タレット描画手順、回転式・座標オフセット
+  - `createDisplayLists/deleteDisplayLists` を `DisplayList` で再現し、3メッシュ構成を移植
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
+
 ### P47GameManager.d -> gamemanager.ts
 - 対応状況: 一部未完
 - 一致させた項目:
