@@ -181,3 +181,18 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### LuminousActorPool.d -> luminousactorpool.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `ActorPool` 継承クラスとしての責務
+  - コンストラクタで `ActorPool` 初期化を委譲する構造
+  - `drawLuminous` で `actor.length` を走査し、`exists` 中 actor のみ `drawLuminous()` を呼ぶ更新順
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施

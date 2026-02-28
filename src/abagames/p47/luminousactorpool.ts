@@ -1,7 +1,17 @@
-export class LuminousActorPool<T = unknown> {
-  public actor: T[] = [];
-  public constructor(_n = 0, _actorClass?: unknown, _initializer?: unknown) {}
-  public clear(): void {
-    this.actor = [];
+import { ActorPool } from "../util/actor";
+import { LuminousActor } from "./luminousactor";
+
+/**
+ * Actor pool for the LuminousActor.
+ */
+export class LuminousActorPool<T extends LuminousActor> extends ActorPool<T> {
+  public constructor(n: number, args: unknown[] | null, factory: () => T) {
+    super(n, args, factory);
+  }
+
+  public drawLuminous(): void {
+    for (let i = 0; i < this.actor.length; i++) {
+      if (this.actor[i].exists) this.actor[i].drawLuminous();
+    }
   }
 }
