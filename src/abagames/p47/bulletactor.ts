@@ -3,7 +3,7 @@ import { Vector } from "../util/vector";
 import type { BulletMLRunner } from "../util/bulletml/bullet";
 import { rtod } from "../util/bulletml/bullet";
 import type { BulletMLParserAsset } from "../util/bulletml/runtime";
-import { DisplayList } from "../util/sdl/displaylist";
+import type { GLCompatStaticMesh } from "../util/sdl/glcompat";
 import { Screen3D } from "../util/sdl/screen3d";
 import { BulletActorPool } from "./bulletactorpool";
 import { Field } from "./field";
@@ -25,7 +25,7 @@ export class BulletActor extends Actor {
   private static readonly FIELD_SPACE = 0.5;
   private static BULLET_DISAPPEAR_CNT = 180;
   private static nextId = 0;
-  private static displayList: DisplayList | null = null;
+  private static displayShapes: BulletDisplayShape[] = [];
 
   private static readonly SHIP_HIT_WIDTH = 0.2;
   private static readonly RETRO_CNT = 24;
@@ -392,12 +392,21 @@ export class BulletActor extends Actor {
     }
     Screen3D.glPushMatrix();
     Screen3D.glTranslatef(this.bullet.pos.x, this.bullet.pos.y, 0);
-    if (this.rtCnt >= BulletActor.RETRO_CNT && BulletActor.displayList) {
-      const di = this.clampColor(this.bullet.color) * (BulletActor.BULLET_SHAPE_NUM + 1);
-      BulletActor.displayList.call(di);
+    if (this.rtCnt >= BulletActor.RETRO_CNT && BulletActor.displayShapes.length > 0) {
+      const colorIndex = this.clampColor(this.bullet.color);
+      const di = colorIndex * (BulletActor.BULLET_SHAPE_NUM + 1);
+      const [r, g, b] = BulletActor.getDisplayColor(colorIndex);
+      const pointRendered = BulletActor.drawDisplayShape(di);
+      if (!pointRendered) {
+        BulletActor.drawDisplayListShapeImmediate(0, r, g, b);
+      }
       Screen3D.glRotatef(rtod(d), 0, 0, 1);
       Screen3D.glScalef(this.bullet.bulletSize, this.bullet.bulletSize, 1);
-      BulletActor.displayList.call(di + 1 + this.clampShape(this.bullet.shape));
+      const shapeIdx = 1 + this.clampShape(this.bullet.shape);
+      const shapeRendered = BulletActor.drawDisplayShape(di + shapeIdx);
+      if (!shapeRendered) {
+        BulletActor.drawDisplayListShapeImmediate(shapeIdx, r, g, b);
+      }
     } else {
       this.drawRetro(d);
     }
@@ -419,35 +428,377 @@ export class BulletActor extends Actor {
   public static createDisplayLists(): void {
     BulletActor.deleteDisplayLists();
     const total = BulletActor.BULLET_COLOR_NUM * (BulletActor.BULLET_SHAPE_NUM + 1);
-    const list = new DisplayList(total);
-    let idx = 0;
-    let started = false;
+    const shapes: BulletDisplayShape[] = [];
     for (let i = 0; i < BulletActor.BULLET_COLOR_NUM; i++) {
-      let r = BulletActor.bulletColor[i][0];
-      let g = BulletActor.bulletColor[i][1];
-      let b = BulletActor.bulletColor[i][2];
-      r += (1 - r) * 0.5;
-      g += (1 - g) * 0.5;
-      b += (1 - b) * 0.5;
+      const [r, g, b] = BulletActor.getDisplayColor(i);
       for (let j = 0; j < BulletActor.BULLET_SHAPE_NUM + 1; j++) {
-        if (!started) {
-          list.beginNewList();
-          started = true;
-        } else {
-          list.nextNewList();
-        }
-        Screen3D.setColor(r, g, b, 1);
-        BulletActor.drawDisplayListShape(j, r, g, b);
-        idx++;
+        shapes.push(BulletActor.buildDisplayShape(j, r, g, b));
       }
     }
-    if (started && idx > 0) {
-      list.endNewList();
+    if (shapes.length !== total) {
+      BulletActor.deleteDisplayLists();
+      return;
     }
-    BulletActor.displayList = list;
+    BulletActor.displayShapes = shapes;
   }
 
-  private static drawDisplayListShape(j: number, r: number, g: number, b: number): void {
+  private static buildDisplayShape(j: number, r: number, g: number, b: number): BulletDisplayShape {
+    const size = 1;
+    let sz = 0;
+    let sz2 = 0;
+    switch (j) {
+      case 0:
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [
+                -BulletActor.SHAPE_POINT_SIZE,
+                -BulletActor.SHAPE_POINT_SIZE,
+                0,
+                BulletActor.SHAPE_POINT_SIZE,
+                -BulletActor.SHAPE_POINT_SIZE,
+                0,
+                BulletActor.SHAPE_POINT_SIZE,
+                BulletActor.SHAPE_POINT_SIZE,
+                0,
+                -BulletActor.SHAPE_POINT_SIZE,
+                BulletActor.SHAPE_POINT_SIZE,
+                0,
+              ],
+              BulletActor.expandFlatColor(4, r, g, b, 1),
+            ),
+          ],
+        };
+      case 1:
+        sz = size / 2;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_LOOP,
+              [-sz, -sz, 0, sz, -sz, 0, 0, size, 0],
+              BulletActor.expandFlatColor(3, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [-sz, -sz, 0, sz, -sz, 0, 0, size, 0],
+              [r, g, b, 0.55, r, g, b, 0.55, BulletActor.SHAPE_BASE_COLOR_R, BulletActor.SHAPE_BASE_COLOR_G, BulletActor.SHAPE_BASE_COLOR_B, 0.55],
+            ),
+          ],
+        };
+      case 2:
+        sz = size / 2;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_LOOP,
+              [0, -size, 0, sz, 0, 0, 0, size, 0, -sz, 0, 0],
+              BulletActor.expandFlatColor(4, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [0, -size, 0, sz, 0, 0, 0, size, 0, -sz, 0, 0],
+              [
+                r,
+                g,
+                b,
+                0.7,
+                r,
+                g,
+                b,
+                0.7,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+              ],
+            ),
+          ],
+        };
+      case 3:
+        sz = size / 4;
+        sz2 = (size / 3) * 2;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_LOOP,
+              [-sz, -sz2, 0, sz, -sz2, 0, sz, sz2, 0, -sz, sz2, 0],
+              BulletActor.expandFlatColor(4, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [-sz, -sz2, 0, sz, -sz2, 0, sz, sz2, 0, -sz, sz2, 0],
+              [
+                r,
+                g,
+                b,
+                0.45,
+                r,
+                g,
+                b,
+                0.45,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+              ],
+            ),
+          ],
+        };
+      case 4:
+        sz = size / 2;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_LOOP,
+              [-sz, -sz, 0, sz, -sz, 0, sz, sz, 0, -sz, sz, 0],
+              BulletActor.expandFlatColor(4, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [-sz, -sz, 0, sz, -sz, 0, sz, sz, 0, -sz, sz, 0],
+              [
+                r,
+                g,
+                b,
+                0.7,
+                r,
+                g,
+                b,
+                0.7,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+              ],
+            ),
+          ],
+        };
+      case 5:
+        sz = size / 2;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_LOOP,
+              [
+                -sz / 2,
+                -sz,
+                0,
+                sz / 2,
+                -sz,
+                0,
+                sz,
+                -sz / 2,
+                0,
+                sz,
+                sz / 2,
+                0,
+                sz / 2,
+                sz,
+                0,
+                -sz / 2,
+                sz,
+                0,
+                -sz,
+                sz / 2,
+                0,
+                -sz,
+                -sz / 2,
+                0,
+              ],
+              BulletActor.expandFlatColor(8, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [
+                -sz / 2,
+                -sz,
+                0,
+                sz / 2,
+                -sz,
+                0,
+                sz,
+                -sz / 2,
+                0,
+                sz,
+                sz / 2,
+                0,
+                sz / 2,
+                sz,
+                0,
+                -sz / 2,
+                sz,
+                0,
+                -sz,
+                sz / 2,
+                0,
+                -sz,
+                -sz / 2,
+                0,
+              ],
+              [
+                r,
+                g,
+                b,
+                0.85,
+                r,
+                g,
+                b,
+                0.85,
+                r,
+                g,
+                b,
+                0.85,
+                r,
+                g,
+                b,
+                0.85,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+              ],
+            ),
+          ],
+        };
+      case 6:
+        sz = (size * 2) / 3;
+        sz2 = size / 5;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_STRIP,
+              [-sz, -sz + sz2, 0, 0, sz + sz2, 0, sz, -sz + sz2, 0],
+              BulletActor.expandFlatColor(3, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [-sz, -sz + sz2, 0, sz, -sz + sz2, 0, 0, sz + sz2, 0],
+              [r, g, b, 0.55, r, g, b, 0.55, BulletActor.SHAPE_BASE_COLOR_R, BulletActor.SHAPE_BASE_COLOR_G, BulletActor.SHAPE_BASE_COLOR_B, 0.55],
+            ),
+          ],
+        };
+      case 7:
+        sz = size / 2;
+        return {
+          parts: [
+            BulletActor.createShapePart(
+              Screen3D.GL_LINE_LOOP,
+              [-sz, -sz, 0, 0, -sz, 0, sz, 0, 0, sz, sz, 0, 0, sz, 0, -sz, 0, 0],
+              BulletActor.expandFlatColor(6, r, g, b, 1),
+              true,
+            ),
+            BulletActor.createShapePart(
+              Screen3D.GL_TRIANGLE_FAN,
+              [-sz, -sz, 0, 0, -sz, 0, sz, 0, 0, sz, sz, 0, 0, sz, 0, -sz, 0, 0],
+              [
+                r,
+                g,
+                b,
+                0.85,
+                r,
+                g,
+                b,
+                0.85,
+                r,
+                g,
+                b,
+                0.85,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+                BulletActor.SHAPE_BASE_COLOR_R,
+                BulletActor.SHAPE_BASE_COLOR_G,
+                BulletActor.SHAPE_BASE_COLOR_B,
+                0.55,
+              ],
+            ),
+          ],
+        };
+      default:
+        return { parts: [] };
+    }
+  }
+
+  private static createShapePart(mode: number, vertices: number[], colors: number[], opaque = false): BulletDisplayShapePart {
+    return {
+      mode,
+      vertices,
+      colors,
+      opaque,
+      mesh: Screen3D.glCreateStaticMesh(mode, vertices, colors),
+    };
+  }
+
+  private static expandFlatColor(vertexCount: number, r: number, g: number, b: number, a: number): number[] {
+    const colors: number[] = [];
+    for (let i = 0; i < vertexCount; i++) {
+      colors.push(r, g, b, a);
+    }
+    return colors;
+  }
+
+  private static getDisplayColor(colorIndex: number): [number, number, number] {
+    let r = BulletActor.bulletColor[colorIndex][0];
+    let g = BulletActor.bulletColor[colorIndex][1];
+    let b = BulletActor.bulletColor[colorIndex][2];
+    r += (1 - r) * 0.5;
+    g += (1 - g) * 0.5;
+    b += (1 - b) * 0.5;
+    return [r, g, b];
+  }
+
+  private static drawDisplayShape(index: number): boolean {
+    const shape = BulletActor.displayShapes[index];
+    if (!shape) return false;
+    for (const part of shape.parts) {
+      if (part.opaque) Screen3D.glDisable(Screen3D.GL_BLEND);
+      if (part.mesh) {
+        Screen3D.glDrawStaticMesh(part.mesh);
+      } else if (part.vertices.length > 0) {
+        Screen3D.glDrawArrays(part.mode, part.vertices, part.colors);
+      }
+      if (part.opaque) Screen3D.glEnable(Screen3D.GL_BLEND);
+    }
+    return true;
+  }
+
+  private static drawDisplayListShapeImmediate(j: number, r: number, g: number, b: number): void {
     const size = 1;
     let sz = 0;
     let sz2 = 0;
@@ -607,12 +958,25 @@ export class BulletActor extends Actor {
   }
 
   public static deleteDisplayLists(): void {
-    if (!BulletActor.displayList) {
-      return;
+    for (const shape of BulletActor.displayShapes) {
+      for (const part of shape.parts) {
+        if (part.mesh) Screen3D.glDeleteStaticMesh(part.mesh);
+      }
     }
-    BulletActor.displayList.close();
-    BulletActor.displayList = null;
+    BulletActor.displayShapes = [];
   }
+}
+
+interface BulletDisplayShapePart {
+  mode: number;
+  vertices: number[];
+  colors: number[];
+  opaque: boolean;
+  mesh: GLCompatStaticMesh | null;
+}
+
+interface BulletDisplayShape {
+  parts: BulletDisplayShapePart[];
 }
 
 export class BulletActorInitializer {
