@@ -141,7 +141,7 @@
 
 ## ファイル別記録テンプレート
 
-以下を `docs/p47-phase2-progress.md` などに追記して使う。
+以下を `project-docs/p47-phase2-progress.md` などに追記して使う。
 
 ```md
 ### <Name>.d → <name>.ts

@@ -13,6 +13,7 @@ npm run dev
 
 ```bash
 npm run build
+npm run pages
 npm run preview
 ```
 
@@ -41,3 +42,4 @@ npm run test
 ## License
 
 - This `p47-web` package is distributed under the PARSEC47 license from `p47/readme_e.txt` (BSD 2-Clause style).
+- License text is included at `LICENSE-P47.txt`.
