@@ -115,3 +115,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Fragment.d -> fragment.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `R/G/B`、`POINT_NUM`、`cnt`、`lumAlp`、`retro` を含む状態・定数
+  - `init` で `pos[2]` / `vel[2]` / `impact` を初期化する手順
+  - `set` の乱数補間座標生成、速度・impact 算出、寿命とアルファ初期化
+  - `move` の寿命減算、消滅判定、`pos += vel + impact`、減衰係数 (`0.98/0.95/0.98/0.97`)
+  - `draw` / `drawLuminous` の描画呼び出し順と `lumAlp < 0.2` の早期 return
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
