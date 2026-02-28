@@ -328,3 +328,20 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### Roll.d -> roll.ts
+- 対応状況: 完了
+- 一致させた項目:
+  - `LENGTH=4` / `NO_COLLISION_CNT=45` と `BASE_LENGTH/BASE_RESISTANCE/BASE_SPRING/BASE_SIZE/BASE_DIST/SPEED` の定数
+  - `init` で `ship/field/manager` を `RollInitializer` から受け取り、`pos[]/vel[]` を初期化する手順
+  - `set` の初期化順（全節点を自機座標へ揃える、速度0化、`cnt/dist/released` リセット、`exists=true`）
+  - `move` の分岐（未解放時の周回移動、解放時の直進と場外消滅、パーティクル発生）とバネ追従計算
+  - `draw` の `released` による retro パラメータ切替と、節点ごとの `drawBoxRetro` サイズ減衰
+- 残差:
+  - なし
+- 追加した PORT_NOTE:
+  - なし
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
