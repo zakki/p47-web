@@ -43,6 +43,9 @@ export class SoundManager {
   public static init(gameManager: P47GameManager): void {
     this.manager = gameManager;
     if (SDLSoundManager.noSound) return;
+    // p47 assets are placed directly under sounds/ (not sounds/musics or sounds/chunks).
+    Music.dir = "sounds";
+    Chunk.dir = "sounds";
     this.bgm = [];
     for (let i = 0; i < this.BGM_NUM; i++) {
       const music = new Music();
