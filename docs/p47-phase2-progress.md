@@ -196,3 +196,19 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### LuminousScreen.d -> luminousscreen.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `init` / `resized` / `close` / `startRenderToTexture` / `endRenderToTexture` / `draw` の API を D 版と同名で移植
+  - 内部状態 (`luminousTextureWidth/Height=64`, `screenWidth`, `screenHeight`, `luminous`) と `lmOfs` / `lmOfsBs=5` を D 版準拠で実装
+  - `draw` の描画手順（`GL_TEXTURE_2D` 有効化、`viewOrtho`、5 枚クアッド描画、`viewPerspective`、無効化）を一致
+  - D 版の頂点オフセット計算（3,4頂点で `lmOfs[i][0]` を Y に使う式）を同じまま保持
+- 残差:
+  - D 版 `glCopyTexImage2D` + `glViewport` ベースのレンダーターゲット切替は、現行 GLCompat で FBO 未対応のため完全一致不可
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/luminousscreen.ts:69 - `startRenderToTexture` の viewport 切替未再現
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
