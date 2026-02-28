@@ -1,0 +1,16 @@
+### BarrageManager.d -> barragemanager.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - バレッジ種別定数 (`MORPH`..`MIDDLESUB_LOCK`) と `BARRAGE_TYPE=13` / `BARRAGE_MAX=64`
+  - `parser[type][index]` と `parserNum[type]` の2次元管理
+  - 13ディレクトリを順に走査し、`Load BulletML: <dir>/<file>` を出力しながらロード
+  - `unloadBulletMLs()` で全スロットを解放状態 (`null`) に戻す後始末
+- 残差:
+  - D版の同期ロード (`void loadBulletMLs`) に対し、Web版は `Promise<void>` の非同期ロードに変更
+  - D版の `readdir` 列挙順は未規定だが、Web版は `import.meta.glob` の列挙順依存
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/barragemanager.ts:114 - 同期ロード差分と async 初期化 TODO
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
