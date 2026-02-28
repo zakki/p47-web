@@ -26,9 +26,10 @@ npm run test
 ## Current status
 
 - Phase0: runtime scaffold is ready (`boot` + `screen` + `gameloop`)
+- Phase1: module skeletons are in place for all `p47/src/abagames/p47/*.d`
 - Input: keyboard, gamepad, and touch guide controls from shared SDL-like runtime
 - Rendering: placeholder scene to verify browser loop and overlay path
-- Game logic from `p47/src/abagames/p47/*.d` is not ported yet
+- Game logic parity with native `p47.exe` is not ported yet
 
 ## Next targets
 

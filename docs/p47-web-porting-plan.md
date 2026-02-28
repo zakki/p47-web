@@ -15,14 +15,17 @@ Port `p47/src/abagames/p47/*.d` to browser TypeScript by reusing the proven `tt-
 1. Phase0 Scaffold
 - `p47-web` package + Vite + TS
 - Browser boot loop starts and renders placeholder
+ - Status: done
 
 2. Phase1 Compile Skeleton
 - Add empty TS counterparts for all `p47/*.d` modules
 - Wire imports/exports and remove structural type errors
+ - Status: done
 
 3. Phase2 Logic Port
 - Port `P47GameManager`, `Title`, `StageManager`, `Field`, `Ship`
 - Port actor pools and collisions (`Enemy`, `Shot`, `BulletActor`, `Bonus`)
+ - Status: in progress
 
 4. Phase3 Rendering/Audio
 - Port display list dependent draw paths to `glcompat`
