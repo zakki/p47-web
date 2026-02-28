@@ -259,3 +259,23 @@
   - typecheck: pass
   - build: pass
   - 手動確認: 未実施
+
+### P47GameManager.d -> gamemanager.ts
+- 対応状況: 一部未完
+- 一致させた項目:
+  - `init/start/close/move/draw` の状態遷移と呼び出し順（`TITLE/IN_GAME/GAMEOVER/PAUSE`）
+  - スコア/エクステンド/残機管理 (`addScore`, `shipDestroyed`, `startGameover`)
+  - actor pool 初期化順・`startStage` 難易度分岐・減速制御 (`SLOWDOWN_START_BULLETS_SPEED`)
+  - `inGame/title/gameover/pause` の move/draw 系分岐とサイド情報描画
+  - 画面シェイク (`setScreenShake`, `moveScreenShake`, `setEyepos`) とボスシールドメータ描画
+- 残差:
+  - `P47Screen` 側に発光パス用フックが未実装のため、D版の render-to-texture 合成を完全再現できていない
+  - `BarrageManager` の非同期ロードにより、D版の「初期化完了時点で弾幕ロード済み」保証は未達
+  - `Title/StageManager/Shot/Roll/Particle/P47PrefManager` の一部がスタブのため、該当箇所は防御的呼び出しで接続
+- 追加した PORT_NOTE:
+  - p47-web/src/abagames/p47/gamemanager.ts:199 - BulletML ロード非同期化による起動直後差分
+  - p47-web/src/abagames/p47/gamemanager.ts:536 - P47Screen の発光/固定オーソ描画フック未実装
+- 検証:
+  - typecheck: pass
+  - build: pass
+  - 手動確認: 未実施
