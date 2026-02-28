@@ -13,6 +13,13 @@ export interface GLCompatStaticMesh {
   readonly colorBuffer: WebGLBuffer;
 }
 
+export interface GLCompatRenderTarget {
+  readonly texture: WebGLTexture;
+  readonly framebuffer: WebGLFramebuffer;
+  readonly width: number;
+  readonly height: number;
+}
+
 export class GLCompat {
   private readonly gl: GL;
   private program: WebGLProgram;
@@ -50,6 +57,7 @@ export class GLCompat {
   private drawVerticesBuffer = new Float32Array(0);
   private drawTexCoordsBuffer = new Float32Array(0);
   private drawColorsBuffer = new Float32Array(0);
+  private activeRenderTarget: GLCompatRenderTarget | null = null;
 
   public static create(canvas: HTMLCanvasElement): GLCompat {
     const gl = canvas.getContext("webgl", {
@@ -114,6 +122,10 @@ export class GLCompat {
     this.width = Math.max(1, width);
     this.height = Math.max(1, height);
     this.gl.viewport(0, 0, this.width, this.height);
+  }
+
+  public setViewport(width: number, height: number): void {
+    this.gl.viewport(0, 0, Math.max(1, width), Math.max(1, height));
   }
 
   public clear(): void {
@@ -374,6 +386,61 @@ export class GLCompat {
     gl.deleteBuffer(this.texCoordBuffer);
     gl.deleteBuffer(this.colorBuffer);
     gl.deleteProgram(this.program);
+  }
+
+  public createRenderTarget(width: number, height: number): GLCompatRenderTarget | null {
+    const gl = this.gl;
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    const texture = gl.createTexture();
+    const framebuffer = gl.createFramebuffer();
+    if (!texture || !framebuffer) {
+      if (texture) gl.deleteTexture(texture);
+      if (framebuffer) gl.deleteFramebuffer(framebuffer);
+      return null;
+    }
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    if (status !== gl.FRAMEBUFFER_COMPLETE) {
+      gl.deleteFramebuffer(framebuffer);
+      gl.deleteTexture(texture);
+      return null;
+    }
+    return { texture, framebuffer, width: w, height: h };
+  }
+
+  public beginRenderTarget(target: GLCompatRenderTarget): void {
+    const gl = this.gl;
+    this.activeRenderTarget = target;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
+    gl.viewport(0, 0, target.width, target.height);
+  }
+
+  public endRenderTarget(): void {
+    const gl = this.gl;
+    this.activeRenderTarget = null;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, this.width, this.height);
+  }
+
+  public deleteRenderTarget(target: GLCompatRenderTarget): void {
+    const gl = this.gl;
+    if (this.activeRenderTarget === target) {
+      this.endRenderTarget();
+    }
+    if (this.boundTexture === target.texture) this.boundTexture = null;
+    gl.deleteFramebuffer(target.framebuffer);
+    gl.deleteTexture(target.texture);
   }
 
   private createProgram(): WebGLProgram {

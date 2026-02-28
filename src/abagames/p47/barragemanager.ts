@@ -107,6 +107,9 @@ export class BarrageManager {
         map.set(dir, [{ name, xmlText }]);
       }
     }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.name.localeCompare(b.name));
+    }
     return map;
   }
 }

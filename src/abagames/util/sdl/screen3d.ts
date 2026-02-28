@@ -348,7 +348,7 @@ export abstract class Screen3D implements Screen {
   }
 
   public static glViewport(_x: number, _y: number, width: number, height: number): void {
-    Screen3D.gl?.resize(width, height);
+    Screen3D.gl?.setViewport(width, height);
   }
 
   public static glFrustum(
