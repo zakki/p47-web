@@ -232,7 +232,9 @@ export class Ship {
           break;
       }
       this.manager.addShot(this.firePos, td);
-      SoundManager.playSe(SoundManager.SHOT);
+      if (this.fireCnt % 5 == 0) {
+        SoundManager.playSe(SoundManager.SHOT);
+      }
       this.fireCnt++;
     }
 
