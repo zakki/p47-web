@@ -69,6 +69,7 @@ export class Pad implements Input {
   private touchMoveCurrentY = 0;
   private touchGuideEnabled = false;
   private touchFireToggled = false;
+  private touchGestureGuardBound = false;
 
   public openJoystick(): void {
     if (typeof window === "undefined") return;
@@ -171,6 +172,7 @@ export class Pad implements Input {
     if (!this.touchGuideEnabled) return;
     const layout = this.getTouchGuideLayout(width, height);
     this.drawTouchCircle(ctx, layout.move.x, layout.move.y, layout.move.radius, "MOVE");
+    this.drawTouchMoveInputCircle(ctx, layout.move.x, layout.move.y, layout.move.radius);
     this.drawTouchCircle(ctx, layout.fire.x, layout.fire.y, layout.fire.radius, "SHOT");
     this.drawTouchCircle(ctx, layout.charge.x, layout.charge.y, layout.charge.radius, "CHARGE");
     this.drawTouchCircle(ctx, layout.pause.x, layout.pause.y, layout.pause.radius, "II");
@@ -205,6 +207,17 @@ export class Pad implements Input {
 
   private bindTouchListeners(): void {
     if (typeof window === "undefined") return;
+    if (!this.touchGestureGuardBound) {
+      this.touchGestureGuardBound = true;
+      const preventDefault = (e: Event) => {
+        if (e.cancelable) e.preventDefault();
+      };
+      window.addEventListener("touchstart", preventDefault, { passive: false });
+      window.addEventListener("touchmove", preventDefault, { passive: false });
+      window.addEventListener("gesturestart", preventDefault, { passive: false });
+      window.addEventListener("gesturechange", preventDefault, { passive: false });
+      window.addEventListener("gestureend", preventDefault, { passive: false });
+    }
     const handlePointerDown = (e: PointerEvent) => {
       if (e.pointerType === "mouse") return;
       e.preventDefault();
@@ -377,6 +390,32 @@ export class Pad implements Input {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(label, x, y);
+    ctx.restore();
+  }
+
+  private drawTouchMoveInputCircle(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, moveRadius: number): void {
+    if (this.touchMovePointerId == null) return;
+    const threshold = 24;
+    const dx = this.touchMoveCurrentX - this.touchMoveOriginX;
+    const dy = this.touchMoveCurrentY - this.touchMoveOriginY;
+    if (Math.abs(dx) < threshold && Math.abs(dy) < threshold) return;
+
+    const maxOffset = moveRadius * 0.78;
+    const len = Math.hypot(dx, dy);
+    const scale = len > maxOffset ? maxOffset / len : 1;
+    const ox = dx * scale;
+    const oy = dy * scale;
+    const knobR = Math.max(12, moveRadius * 0.32);
+
+    ctx.save();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "rgba(210, 245, 255, 0.28)";
+    ctx.strokeStyle = "rgba(220, 250, 255, 0.78)";
+    ctx.lineWidth = Math.max(1.5, moveRadius * 0.06);
+    ctx.beginPath();
+    ctx.arc(centerX + ox, centerY + oy, knobR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
   }
 
