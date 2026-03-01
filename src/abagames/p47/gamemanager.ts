@@ -5,6 +5,7 @@ import { GameManager as BaseGameManager } from "../util/sdl/gamemanager";
 import { Music } from "../util/sdl/sound";
 import { Pad } from "../util/sdl/pad";
 import { Screen3D } from "../util/sdl/screen3d";
+import { getTouchLayout, toGLViewport } from "../util/sdl/touchlayout";
 import { Vector } from "../util/vector";
 import type { BulletMLParserAsset } from "../util/bulletml/runtime";
 import { BarrageManager } from "./barragemanager";
@@ -504,13 +505,21 @@ export class P47GameManager extends BaseGameManager {
       }
     }
     if (this.waitingForBarrageAssets) {
+      const gameViewport = getTouchLayout(Screen3D.width, Screen3D.height).gameViewport;
+      const glGameViewport = toGLViewport(gameViewport, Screen3D.height);
+      Screen3D.glViewport(glGameViewport.x, glGameViewport.y, glGameViewport.width, glGameViewport.height);
       this.screen.viewOrthoFixed?.();
       this.drawLoadingStatus();
       this.screen.viewPerspective?.();
+      this.setDefaultViewportAndProjection();
       return;
     }
+    const gameViewport = getTouchLayout(Screen3D.width, Screen3D.height).gameViewport;
+    const glGameViewport = toGLViewport(gameViewport, Screen3D.height);
 
     this.screen.startRenderToTexture?.();
+    Screen3D.glViewport(glGameViewport.x, glGameViewport.y, glGameViewport.width, glGameViewport.height);
+    this.setPerspectiveForSize(gameViewport.width, gameViewport.height);
     Screen3D.glPushMatrix();
     this.setEyepos();
     switch (this.state) {
@@ -531,6 +540,8 @@ export class P47GameManager extends BaseGameManager {
     this.screen.endRenderToTexture?.();
 
     this.screen.clear();
+    Screen3D.glViewport(glGameViewport.x, glGameViewport.y, glGameViewport.width, glGameViewport.height);
+    this.setPerspectiveForSize(gameViewport.width, gameViewport.height);
     Screen3D.glPushMatrix();
     this.setEyepos();
     switch (this.state) {
@@ -549,7 +560,9 @@ export class P47GameManager extends BaseGameManager {
     }
     Screen3D.glPopMatrix();
 
+    this.setDefaultViewportAndProjection();
     this.screen.drawLuminous?.();
+    Screen3D.glViewport(glGameViewport.x, glGameViewport.y, glGameViewport.width, glGameViewport.height);
     this.screen.viewOrthoFixed?.();
     switch (this.state) {
       case P47GameManager.IN_GAME:
@@ -568,6 +581,7 @@ export class P47GameManager extends BaseGameManager {
         break;
     }
     this.screen.viewPerspective?.();
+    this.setDefaultViewportAndProjection();
   }
 
   private onBarrageAssetsReady(failed: boolean): void {
@@ -967,6 +981,27 @@ export class P47GameManager extends BaseGameManager {
       y = this.rand.nextSignedFloat(this.screenShakeIntense * (this.screenShakeCnt + 10));
     }
     Screen3D.glTranslatef(x, y, -this.field.eyeZ);
+  }
+
+  private setPerspectiveForSize(width: number, height: number): void {
+    const w = Math.max(1, width);
+    const h = Math.max(1, height);
+    Screen3D.glMatrixMode(Screen3D.GL_PROJECTION);
+    Screen3D.glLoadIdentity();
+    Screen3D.glFrustum(
+      -Screen3D.nearPlane,
+      Screen3D.nearPlane,
+      (-Screen3D.nearPlane * h) / w,
+      (Screen3D.nearPlane * h) / w,
+      0.1,
+      Screen3D.farPlane,
+    );
+    Screen3D.glMatrixMode(Screen3D.GL_MODELVIEW);
+  }
+
+  private setDefaultViewportAndProjection(): void {
+    Screen3D.glViewport(0, 0, Screen3D.width, Screen3D.height);
+    this.setPerspectiveForSize(Screen3D.width, Screen3D.height);
   }
 
   private getStartParsec(difficulty: number, slot: number): number {
